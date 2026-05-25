@@ -1478,28 +1478,28 @@ export default function Orcamentos({ initialEstimates, projects, userRole }: { i
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Orçamentos Ativos</span>
               <FileText size={16} className="text-blue-500" />
             </div>
-            <p className="text-3xl font-black">{initialEstimates.length}</p>
+            <p className="text-3xl font-black text-slate-800 dark:text-white">{initialEstimates.length}</p>
           </div>
           <div className="bg-white dark:bg-[#162032] p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Volume Orçado</span>
               <TrendingUp size={16} className="text-emerald-500" />
             </div>
-            <p className="text-3xl font-black">{formatter.format(initialEstimates.reduce((a, b) => a + b.totalAmount, 0))}</p>
+            <p className="text-3xl font-black text-slate-800 dark:text-white">{formatter.format(initialEstimates.reduce((a, b) => a + b.totalAmount, 0))}</p>
           </div>
           <div className="bg-white dark:bg-[#162032] p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Aguardando Aprovação</span>
               <DollarSign size={16} className="text-amber-500" />
             </div>
-            <p className="text-3xl font-black">{initialEstimates.filter(e => e.status === 'Rascunho').length}</p>
+            <p className="text-3xl font-black text-slate-800 dark:text-white">{initialEstimates.filter(e => e.status === 'Rascunho').length}</p>
           </div>
           <div className="bg-white dark:bg-[#162032] p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Bancos Conectados</span>
               <Database size={16} className="text-violet-500" />
             </div>
-            <p className="text-3xl font-black">CDHU, SINAPI</p>
+            <p className="text-3xl font-black text-slate-800 dark:text-white">CDHU, SINAPI</p>
           </div>
         </div>
 

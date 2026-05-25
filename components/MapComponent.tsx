@@ -104,7 +104,7 @@ export default function MapComponent({ projects }: MapProps) {
             </MapContainer>
 
             {/* Legend Overlay */}
-            <div className="absolute bottom-6 left-6 z-[1000] bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl text-[10px] font-bold uppercase tracking-widest space-y-3">
+            <div className="absolute bottom-6 left-6 z-[1000] bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl text-[10px] font-bold uppercase tracking-widest space-y-3 text-slate-800 dark:text-slate-200">
                 <div className="flex items-center gap-3"><div className="w-3 h-3 bg-emerald-500 rounded-full ring-2 ring-emerald-500/20"></div> <span>Margem Saudável (&gt;10%)</span></div>
                 <div className="flex items-center gap-3"><div className="w-3 h-3 bg-amber-500 rounded-full ring-2 ring-amber-500/20"></div> <span>Margem em Atenção (0-10%)</span></div>
                 <div className="flex items-center gap-3"><div className="w-3 h-3 bg-rose-500 rounded-full ring-2 ring-rose-500/20"></div> <span>Margem Crítica / Alertas</span></div>
