@@ -21,9 +21,8 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Se as chaves do Cloudinary estiverem configuradas, usa a nuvem
     if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY) {
-      return new Promise((resolve, reject) => {
+      return new Promise<NextResponse>((resolve, reject) => {
         cloudinary.uploader.upload_stream(
           { folder: 'obrasys_rdos' },
           (error, result) => {

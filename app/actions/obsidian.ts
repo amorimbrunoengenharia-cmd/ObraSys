@@ -23,9 +23,9 @@ if (githubToken) {
   octokit = new Octokit({ auth: githubToken });
 }
 
-export let githubCommits: { path: string, content: string }[] = [];
+let githubCommits: { path: string, content: string }[] = [];
 
-export function clearGithubCommits() {
+function clearGithubCommits() {
     githubCommits = [];
 }
 
@@ -459,6 +459,7 @@ export async function exportSwotToObsidian(
         const dateStr = now.toISOString().split('T')[0];
         const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         const folder = `Projetos/${projName}/IA_SWOT`;
+        const filename = `SWOT_${dateStr}_${now.getTime()}.md`;
         const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR')}`;
 
         const strengths = (swotData.strengths || []).map((s: string) => `- ✅ ${s}`).join('\n');
