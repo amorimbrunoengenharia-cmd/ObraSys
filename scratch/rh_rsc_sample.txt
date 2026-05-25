@@ -1,0 +1,18 @@
+﻿2:"$Sreact.fragment"
+4:I["[project]/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js [app-client] (ecmascript)",["/_next/static/chunks/node_modules_next_dist_094231d7._.js","/_next/static/chunks/app_favicon_ico_mjs_756560dc._.js"],"SegmentViewNode"]
+f:I["[project]/node_modules/next/dist/lib/framework/boundary-components.js [app-client] (ecmascript)",["/_next/static/chunks/node_modules_next_dist_094231d7._.js","/_next/static/chunks/app_favicon_ico_mjs_756560dc._.js"],"OutletBoundary"]
+11:"$Sreact.suspense"
+1a:I["[project]/node_modules/next/dist/lib/framework/boundary-components.js [app-client] (ecmascript)",["/_next/static/chunks/node_modules_next_dist_094231d7._.js","/_next/static/chunks/app_favicon_ico_mjs_756560dc._.js"],"ViewportBoundary"]
+20:I["[project]/node_modules/next/dist/lib/framework/boundary-components.js [app-client] (ecmascript)",["/_next/static/chunks/node_modules_next_dist_094231d7._.js","/_next/static/chunks/app_favicon_ico_mjs_756560dc._.js"],"MetadataBoundary"]
+:N1779224929980.95
+1:[]
+3:[]
+6:{"name":"RHPage","key":null,"env":"Server","stack":[],"props":{"params":"$@7","searchParams":"$@8"}}
+9:[["Array.map","",0,0,0,0,false]]
+a:[["Array.map","",0,0,0,0,false]]
+b:[["Array.map","",0,0,0,0,false]]
+d:{"name":"Next.MetadataOutlet","key":null,"env":"Server","stack":[],"props":{}}
+e:[]
+10:[]
+13:[]
+16:"$EObject.defineProperty(function(type,config,children){for(var propName,i=2;i<arguments.length;i++)validateChildKeys(arguments[i]);i={};var key=null;if(null!=config)for(propName in didWarnAboutOldJSXRuntime||!(\"__self\"in config)||\"key\"in config||(didWarnAboutOldJSXRuntime=!0,console.warn(\"Your app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform\")),hasValidKey(config)&&(checkKeyStringCoercion(config.key),key=\"\"+config.key),config)hasOwnProperty.call(config,propName)&&\"key\"!==propName&&\"__self\"!==propName&&

@@ -1,0 +1,45 @@
+{
+  "name": "obrasys-v2",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@octokit/rest": "^22.0.1",
+    "@prisma/client": "^6.4.1",
+    "@types/leaflet": "^1.9.21",
+    "@types/xml2js": "^0.4.14",
+    "cloudinary": "^2.10.0",
+    "jszip": "^3.10.1",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.554.0",
+    "next": "16.0.3",
+    "pdfjs-dist": "^5.7.284",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-leaflet": "^5.0.0",
+    "react-pdf": "^10.4.1",
+    "recharts": "^3.4.1",
+    "three": "^0.135.0",
+    "web-ifc-viewer": "^1.0.218",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.4",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.184.1",
+    "eslint": "^10.3.0",
+    "eslint-config-next": "^16.2.4",
+    "prisma": "^6.4.1",
+    "tailwindcss": "^4.2.4",
+    "typescript": "^6.0.3",
+    "xlsx": "^0.18.5"
+  }
+}

@@ -1,0 +1,17 @@
+﻿2:I["[project]/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js [app-client] (ecmascript)",["/_next/static/chunks/node_modules_next_dist_094231d7._.js","/_next/static/chunks/app_favicon_ico_mjs_756560dc._.js"],"SegmentViewNode"]
+4:"$Sreact.fragment"
+15:I["[project]/components/AuthContext.tsx [app-client] (ecmascript)",["/_next/static/chunks/_e909d85f._.js","/_next/static/chunks/app_layout_tsx_78cdd4a3._.js"],"AuthProvider"]
+18:I["[project]/node_modules/next/dist/client/components/layout-router.js [app-client] (ecmascript)",["/_next/static/chunks/node_modules_next_dist_094231d7._.js","/_next/static/chunks/app_favicon_ico_mjs_756560dc._.js"],"default"]
+1a:I["[project]/node_modules/next/dist/client/components/render-from-template-context.js [app-client] (ecmascript)",["/_next/static/chunks/node_modules_next_dist_094231d7._.js","/_next/static/chunks/app_favicon_ico_mjs_756560dc._.js"],"default"]
+37:I["[project]/node_modules/next/dist/lib/framework/boundary-components.js [app-client] (ecmascript)",["/_next/static/chunks/node_modules_next_dist_094231d7._.js","/_next/static/chunks/app_favicon_ico_mjs_756560dc._.js"],"OutletBoundary"]
+39:"$Sreact.suspense"
+42:I["[project]/node_modules/next/dist/lib/framework/boundary-components.js [app-client] (ecmascript)",["/_next/static/chunks/node_modules_next_dist_094231d7._.js","/_next/static/chunks/app_favicon_ico_mjs_756560dc._.js"],"ViewportBoundary"]
+48:I["[project]/node_modules/next/dist/lib/framework/boundary-components.js [app-client] (ecmascript)",["/_next/static/chunks/node_modules_next_dist_094231d7._.js","/_next/static/chunks/app_favicon_ico_mjs_756560dc._.js"],"MetadataBoundary"]
+:HL["/_next/static/chunks/%5Broot-of-the-server%5D__36b083e1._.css","style"]
+:N1779224930322.976
+1:[]
+3:[]
+5:[["Array.map","",0,0,0,0,false]]
+6:[["Array.map","",0,0,0,0,false]]
+7:[["Array.map","",0,0,0,0,false]]
+a:I["[project]/node_modules/next/dist/client/components/layout-router.js [app-client] (ecmascript)",["/_next/s

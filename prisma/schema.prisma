@@ -1,0 +1,1217 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------
+// MÓDULO DE ORÇAMENTOS (ESTIMATES & CPU)
+// -----------------------------------------------------------------------
+
+model Estimate {
+  id          String  @id @default(cuid())
+  name        String // Ex: "Orçamento Preliminar - Rev 01"
+  description String?
+  status      String  @default("Rascunho") // "Rascunho", "Aprovado", "Rejeitado"
+  totalAmount Float   @default(0)
+
+  projectId Int?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  stages    EstimateStage[]
+  revisions EstimateRevision[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EstimateRevision {
+  id   String @id @default(cuid())
+  name String
+  data Json
+
+  estimateId String
+  estimate   Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model EstimateStage {
+  id    String @id @default(cuid())
+  name  String // Ex: "1.0 Infraestrutura"
+  order Int    @default(0)
+
+  estimateId String
+  estimate   Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+
+  items EstimateItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EstimateItem {
+  id          String  @id @default(cuid())
+  code        String? // Código da composição (ex: CDHU 01.01.010)
+  description String
+  unit        String // m2, m3, kg, etc
+  quantity    Float
+  unitPrice   Float // Valor unitário (calculado ou manual)
+  totalPrice  Float // Valor total do item
+  bdi         Float? // BDI específico do item (se null, usa o global)
+
+  taskId Int? // Vínculo com cronograma
+  task   Task? @relation(fields: [taskId], references: [id])
+
+  stageId String
+  stage   EstimateStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  // Snapshots das composições para evitar quebras por atualização de banco
+  resources EstimateResource[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EstimateResource {
+  id          String @id @default(cuid())
+  description String
+  unit        String
+  type        String // "MATERIAL", "MÃO DE OBRA", "EQUIPAMENTO", "COMPOSIÇÃO"
+  coefficient Float // Consumo por unidade da composição
+  unitPrice   Float
+  totalPrice  Float
+
+  itemId String
+  item   EstimateItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Bancos de Referência (CDHU, SINAPI, Próprio)
+model ReferenceComposition {
+  id            String  @id @default(cuid())
+  database      String // "CDHU", "SINAPI", "PROPRIO"
+  state         String? // "SP", "RJ", etc.
+  referenceDate String? // "02/2024"
+  code          String
+  description   String
+  unit          String
+  unitPrice     Float   @default(0)
+
+  resources       ReferenceResource[] @relation("MainToResources")
+  usedAsAuxiliary ReferenceResource[] @relation("AuxiliaryToResources")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([code, state, referenceDate, database])
+}
+
+model ReferenceResource {
+  id           String @id @default(cuid())
+  description  String
+  unit         String
+  type         String // "MATERIAL", "MÃO DE OBRA", "EQUIPAMENTO", "COMPOSIÇÃO"
+  coefficient  Float
+  defaultPrice Float  @default(0)
+
+  compositionId String
+  composition   ReferenceComposition @relation("MainToResources", fields: [compositionId], references: [id], onDelete: Cascade)
+
+  linkedCompositionId String?
+  linkedComposition   ReferenceComposition? @relation("AuxiliaryToResources", fields: [linkedCompositionId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -----------------------------------------------------------------------
+// MODELOS DO OBRASYS
+// -----------------------------------------------------------------------
+
+model User {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  name     String
+  password String
+  role     String // Ex: 'Diretor', 'Gerente de Obras', 'Cliente / Investidor'
+
+  // Reset de Senha
+  resetToken        String?
+  resetTokenExpires DateTime?
+
+  // Relações
+  assignedTasks Task[] @relation("TaskAssignees")
+  pins          Pin[]  @relation("PinAuthor")
+  pinComments   PinComment[] @relation("PinCommentAuthor")
+  rdos          RDO[]  @relation("RDOAuthor")
+
+  managedProjects Project[] @relation("ProjectEngineer")
+
+  notifications Notification[]
+  itTickets     ItTicket[]
+  isActive      Boolean        @default(true)
+  employee      Employee?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Project {
+  id         Int     @id @default(autoincrement())
+  name       String // Nome da Obra
+  clientName String? // Cliente
+  status     String  @default("Em Orçamento") // 'Em Orçamento', 'Assinado', 'Em Execução', 'Paralisado', 'Concluído'
+  budget     Float   @default(0) // Valor Inicial do Contrato
+
+  // Financeiro Base
+  initialValue     Float?  @default(0)
+  retentionPercent Float?  @default(0) // Retenção Técnica (%)
+  taxPercent       Float?  @default(0) // Impostos (%)
+  retentionRule    String? @default("AT_END") // "PER_BM" ou "AT_END"
+  retentionDays    Int?    @default(0) // Dias após o fim para liberar
+
+  // Cronograma
+  signatureDate     DateTime?
+  osDate            DateTime?
+  executionDays     Int?      @default(0)
+  estimatedDelivery DateTime?
+  contractFileUrl   String?
+
+  // KPIs (Antigos)
+  spent            Float     @default(0)
+  startDate        DateTime? // Início real (pode ser o mesmo que osDate)
+  endDate          DateTime? // Término real
+  location         String?
+  city             String?
+  state            String?
+  physicalProgress Float     @default(0) // Avanço Físico (%)
+  idp              Float     @default(1.0)
+  idc              Float     @default(1.0)
+
+  // Geolocalização e Gestão (Task 11 & 12)
+  address    String?
+  latitude   Float?
+  longitude  Float?
+  engineerId Int?
+  engineer   User?   @relation("ProjectEngineer", fields: [engineerId], references: [id])
+
+  // Relações
+  tasks                Task[]
+  pins                 Pin[]
+  rdos                 RDO[]
+  financials           FinancialRecord[]
+  budgetItems          BudgetItem[]
+  purchaseOrders       PurchaseOrder[]
+  inventoryItems       InventoryItem[]
+  feedPosts            FeedPost[]
+  qualityFvs           QualityFVS[]
+  qualityRncs          QualityRNC[]
+  qualityDds           SafetyDDS[]
+  inventoryTools       InventoryTool[]
+  inventoryLogs        InventoryLog[]
+  contracts            Contract[]
+  contractEvents       ContractEvent[]
+  documents            Document[]
+  documentFolders      DocumentFolder[]
+  purchaseRequests     PurchaseRequest[]
+  materialConsumptions MaterialConsumption[]
+  approvals            ClientApproval[]
+  milestones           ProjectMilestone[]
+  swotAnalyses         SwotAnalysis[]
+  materialLists        MaterialList[]
+  estimates            Estimate[]
+  employees            Employee[]
+  itTickets            ItTicket[]
+
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  candidates Candidate[]
+}
+
+model BudgetItem {
+  id               Int     @id @default(autoincrement())
+  classificacaoDRE String
+  subItem          String?
+  valorOrcado      Float
+  valorVenda       Float
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ContractEvent {
+  id             Int      @id @default(autoincrement())
+  tipo           String // 'Valor', 'Prazo', 'Pleito'
+  descricao      String
+  valorAdicional Float    @default(0)
+  diasAdicionais Int      @default(0)
+  status         String   @default("Em Análise") // 'Em Análise', 'Aprovado', 'Reprovado'
+  data           DateTime @default(now())
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FinancialRecord {
+  id                Int       @id @default(autoincrement())
+  dataCompetencia   DateTime?
+  dataVencimento    DateTime?
+  dataEfetivacao    DateTime?
+  tipo              String // ENTRADA ou SAÍDA
+  classificacaoDRE  String
+  centroCusto       String? // CENTRO DE CUSTO / OBRA (texto livre da planilha)
+  cidade            String?
+  estado            String?
+  setor             String?
+  clienteFornecedor String?
+  descricao         String?
+  valorBruto        Float
+  caucaoRetida      Float?    @default(0)
+  iss               Float?    @default(0)
+  inss              Float?    @default(0)
+  impostosRetidos   Float
+  valorLiquido      Float
+  status            String
+  expectedDate      DateTime? // Previsão de Pagamento / Resgate
+
+  projectId Int?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Relacionamento com Suprimentos (Task 7)
+  purchaseRequestId String?
+  purchaseRequest   PurchaseRequest? @relation("RequestToFinance", fields: [purchaseRequestId], references: [id])
+
+  // Relacionamento com Medições (Rastreabilidade DRE)
+  measurementId Int?
+  measurement   Measurement? @relation(fields: [measurementId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Modelos de Cadastros Base para o Financeiro
+
+model Supplier {
+  id                 String  @id @default(cuid())
+  name               String  @unique
+  type               String  @default("FORNECEDOR") // CLIENTE, FORNECEDOR, AMBOS
+  cnpj               String? @unique
+  email              String?
+  phone              String?
+  address            String?
+  defaultDreCategory String? // Classificação DRE padrão
+
+  purchaseRequests PurchaseRequest[]
+  purchaseOrders   PurchaseOrder[]
+  quotations       Quotation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Sector {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  code      String? // Ex: CC-ADM, CC-OBRAS
+  manager   String? // Responsável pelo setor
+  createdAt DateTime @default(now())
+}
+
+model FinancialCategory {
+  id        Int      @id @default(autoincrement())
+  code      String? // Ex: "1", "2.1" para ordenação
+  name      String   @unique // Ex: '1. Receita Operacional'
+  nature    String   @default("DESPESA") // RECEITA ou DESPESA
+  type      String? // Legado
+  createdAt DateTime @default(now())
+}
+
+model PurchaseOrder {
+  id                String          @id @default(cuid())
+  orderCode         String          @unique // Ex: OC-2026-001
+  purchaseRequestId String
+  purchaseRequest   PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+  supplierId        String?
+  supplier          Supplier?       @relation(fields: [supplierId], references: [id])
+  totalCost         Float           @default(0)
+  paymentTerms      String?
+  status            String          @default("COMPRADO") // COMPRADO, EM_TRANSITO, ENTREGUE_PARCIAL, ENTREGUE_TOTAL
+
+  items    PurchaseOrderItem[]
+  invoices Invoice[]
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  materialId      String
+  material        Material      @relation(fields: [materialId], references: [id])
+
+  quantityPurchased Float
+  unitPrice         Float
+  quantityReceived  Float @default(0)
+
+  // Opcional, para saber de qual item da SC veio
+  requestItemId String?
+
+  invoiceItems InvoiceItem[]
+}
+
+model Material {
+  id       String  @id @default(cuid())
+  code     String  @unique // Ex: MAT-001, CIM-001
+  name     String // Ex: Cimento CP-II 50kg
+  unit     String // Ex: SC, KG, M3, UN
+  category String? // Ex: Básicos, Elétrica, Hidráulica
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchaseRequestItems PurchaseRequestItem[]
+  purchaseOrderItems   PurchaseOrderItem[]
+  inventoryItems       InventoryItem[]
+}
+
+model PurchaseRequest {
+  id          String  @id @default(cuid())
+  requestCode String  @unique // Ex: SC-2026-001
+  projectId   Int // ID da obra/projeto destino
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  requesterName        String // Nome de quem solicitou (por enquanto, texto livre)
+  status               String  @default("PENDENTE") // PENDENTE, EM_COTACAO, APROVADA, REJEITADA
+  currentApprovalLevel Int     @default(1)
+  requiredApprovals    Int     @default(1)
+  approvalHistory      String?
+
+  scApprovedBy         String?
+  scApprovedAt         DateTime?
+  financialApprovedBy  String?
+  financialApprovedAt  DateTime?
+
+  items  PurchaseRequestItem[]
+  orders PurchaseOrder[]
+
+  // Metadados Financeiros (Task 7.1)
+  supplierId  String?
+  supplier    Supplier? @relation(fields: [supplierId], references: [id])
+  sector      String?
+  dreCategory String?
+
+  // Relacionamento com Financeiro (Task 7)
+  financialRecords FinancialRecord[] @relation("RequestToFinance")
+
+  // Relacionamento com Cotações (Task 22.2)
+  quotations Quotation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PurchaseRequestItem {
+  id                String          @id @default(cuid())
+  purchaseRequestId String
+  purchaseRequest   PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+  materialId        String
+  material          Material        @relation(fields: [materialId], references: [id])
+
+  quantity      Float
+  estimatedCost Float  @default(0)
+  urgency       String @default("BAIXA") // BAIXA, MEDIA, ALTA
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  invoiceNumber   String
+  accessKey       String? // Chave da NF-e
+  invoicePhotoUrl String? // Foto/PDF da NF
+
+  receivedAt   DateTime @default(now())
+  receiverName String // Nome do Almoxarife
+
+  items InvoiceItem[]
+
+  createdAt DateTime @default(now())
+}
+
+model InvoiceItem {
+  id        String  @id @default(cuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  purchaseOrderItemId String
+  purchaseOrderItem   PurchaseOrderItem @relation(fields: [purchaseOrderItemId], references: [id], onDelete: Cascade)
+
+  quantityReceived Float
+  condition        String @default("OK") // OK, AVARIADO, FALTANTE
+}
+
+model Quotation {
+  id                String          @id @default(cuid())
+  purchaseRequestId String
+  purchaseRequest   PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+
+  supplierId   String?
+  supplier     Supplier? @relation(fields: [supplierId], references: [id])
+  supplierName String? // Nome manual se não tiver no cadastro
+
+  unitPrice    Float
+  totalPrice   Float
+  deliveryDays Int
+  paymentTerms String? // Ex: "30 dias", "15/30/45", "A vista"
+
+  isWinner Boolean @default(false)
+
+  attachmentUrl String? // URL do orçamento original (PDF/Imagem)
+  createdBy     String? // Nome do usuário que criou a cotação
+  updatedBy     String? // Nome do usuário que atualizou a cotação
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InventoryItem {
+  id              Int       @id @default(autoincrement())
+  materialId      String?
+  linkedMaterial  Material? @relation(fields: [materialId], references: [id])
+  materialName    String // Nome para exibição rápida
+  quantidadeAtual Float
+  unidade         String
+  estoqueMinimo   Float
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  consumptions MaterialConsumption[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FeedPost {
+  id          Int    @id @default(autoincrement())
+  author      String
+  role        String
+  location    String
+  description String
+  image       String // URL ou caminho da imagem
+  tags        String // Tags separadas por vírgula
+  likes       Int    @default(0)
+  comments    Int    @default(0)
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Auditoria de Exclusão
+  isDeleted      Boolean   @default(false)
+  deletedBy      String?
+  deletionReason String?
+  deletedAt      DateTime?
+
+  commentsList FeedComment[]
+  likesList    FeedLike[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FeedComment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  author    String
+  postId    Int
+  post      FeedPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model FeedLike {
+  id        Int      @id @default(autoincrement())
+  userName  String
+  postId    Int
+  post      FeedPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userName, postId])
+}
+
+model Task {
+  id          Int     @id @default(autoincrement())
+  wbs         String // Estrutura Analítica do Projeto (EAP/WBS)
+  title       String?
+  name        String // Mantido para compatibilidade Gantt
+  description String?
+
+  // Gantt (Relativo)
+  start     Int @default(0)
+  duration  Int @default(0)
+  baseStart Int @default(0)
+  baseDur   Int @default(0)
+
+  // Kanban / Real dates
+  startDate DateTime @default(now())
+  endDate   DateTime @default(now())
+  status    String // 'A Fazer', 'Em Andamento', 'Impedimento', 'Concluído'
+  columnId  String?  @default("todo") // 'todo', 'in_progress', 'blocked', 'done'
+  priority  String?  @default("media") // 'baixa', 'media', 'alta', 'urgente'
+  tags      String?
+  progress  Int      @default(0)
+
+  critico      Boolean @default(false)
+  predecessors String? // Predecessoras (ex: "1; 2", "1FS+2d")
+
+  // WBS Brain (Task 14.1)
+  order     Int     @default(0)
+  level     Int     @default(0)
+  isSummary Boolean @default(false)
+
+  // Execução Real (Actuals)
+  actualStart  DateTime?
+  actualFinish DateTime?
+
+  isMilestone Boolean @default(false)
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assignees     User[]         @relation("TaskAssignees")
+  contractItems ContractItem[]
+  estimateItems EstimateItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Pin {
+  id     Int    @id @default(autoincrement())
+  x      Float // Posição X (%)
+  y      Float // Posição Y (%)
+  type   String // 'rfi' (Dúvida), 'rnc' (Não conformidade)
+  status String // 'aberto', 'urgente', 'fechado'
+  title  String
+  desc   String
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  documentId Int?
+  document   Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  authorId Int
+  author   User @relation("PinAuthor", fields: [authorId], references: [id])
+
+  comments PinComment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PinComment {
+  id        Int      @id @default(autoincrement())
+  text      String
+  
+  pinId     Int
+  pin       Pin      @relation(fields: [pinId], references: [id], onDelete: Cascade)
+  
+  authorId  Int
+  author    User     @relation("PinCommentAuthor", fields: [authorId], references: [id])
+  
+  createdAt DateTime @default(now())
+}
+
+model RDO {
+  id        Int     @id @default(autoincrement())
+  date      String // Ex: '20/11'
+  status    String // 'Rascunho', 'Enviado', 'Aprovado', 'Finalizado'
+  weather   String? // JSON: { manha, tarde, noite }
+  manpower  String? // JSON: { indireta, direta }
+  equipment String? // JSON: { equipamentos, veiculos }
+  issues    String? // Texto de ocorrências / JSON legado
+  obs       String?
+
+  activities RdoActivity[]
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  authorId Int?
+  author   User? @relation("RDOAuthor", fields: [authorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RdoActivity {
+  id           Int     @id @default(autoincrement())
+  taskId       Int? // Vínculo com Task
+  progress     Int     @default(0)
+  observations String?
+
+  photos RdoPhoto[]
+
+  rdoId Int
+  rdo   RDO @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RdoPhoto {
+  id      Int     @id @default(autoincrement())
+  url     String // Base64 ou URL de bucket
+  caption String?
+
+  activityId Int
+  activity   RdoActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model QualityFVS {
+  id           Int      @id @default(autoincrement())
+  title        String // Ex: "Concretagem de Sapata"
+  date         DateTime @default(now())
+  status       String // "Pendente", "Aprovado", "Reprovado"
+  inspector    String // Nome de quem inspecionou
+  observations String?
+
+  items FVSItem[]
+  rncs  QualityRNC[]
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FVSItem {
+  id          Int      @id @default(autoincrement())
+  description String
+  isConform   Boolean? // null = não avaliado, true = sim, false = não
+
+  fvsId Int
+  fvs   QualityFVS @relation(fields: [fvsId], references: [id], onDelete: Cascade)
+}
+
+model SafetyDDS {
+  id                Int      @id @default(autoincrement())
+  date              DateTime @default(now())
+  topic             String
+  supervisor        String
+  participantsCount Int
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model QualityRNC {
+  id               Int       @id @default(autoincrement())
+  description      String // Descrição do problema
+  rootCause        String? // Causa raiz
+  correctiveAction String? // Ação corretiva proposta
+  deadline         DateTime? // Prazo para resolução
+  responsible      String // Quem vai resolver
+  status           String    @default("Aberta") // "Aberta", "Em Tratamento", "Fechada"
+  resolvedAt       DateTime?
+
+  fvsId Int? // Opcional, pois uma RNC pode nascer fora de uma FVS
+  fvs   QualityFVS? @relation(fields: [fvsId], references: [id])
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InventoryTool {
+  id          Int     @id @default(autoincrement())
+  nome        String
+  marca       String?
+  patrimonio  String? @unique
+  status      String // 'Disponível', 'Em uso', 'Manutenção'
+  responsavel String?
+  dataMov     String?
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InventoryLog {
+  id          Int    @id @default(autoincrement())
+  tipo        String // 'entrada', 'saida', 'emprestimo', 'devolucao'
+  item        String
+  quantidade  String
+  responsavel String
+  data        String
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Contract {
+  id           Int    @id @default(autoincrement())
+  empresa      String
+  servico      String
+  valorInicial Float
+  retencao     Float  @default(5.0)
+  status       String // 'Ativo', 'Concluído', 'Pendente'
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  items        ContractItem[]
+  additives    ContractAdditive[]
+  measurements Measurement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ContractItem {
+  id       Int    @id @default(autoincrement())
+  desc     String
+  unidade  String
+  qtd      Float
+  unitario Float
+  total    Float
+  medido   Float  @default(0)
+
+  taskId Int?
+  task   Task? @relation(fields: [taskId], references: [id])
+
+  contractId Int
+  contract   Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+model ContractAdditive {
+  id     Int    @id @default(autoincrement())
+  valor  Float
+  motivo String
+  data   String
+
+  contractId Int
+  contract   Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+model Measurement {
+  id        Int     @id @default(autoincrement())
+  ref       String
+  periodo   String
+  data      String
+  bruto     Float
+  retencao  Float // Tratado como Caução Retida
+  iss       Float?  @default(0)
+  inss      Float?  @default(0)
+  liquido   Float
+  status    String // 'Em Análise', 'Aprovado', 'Pago'
+  step      Int     @default(1)
+  breakdown String? // JSON stringified: Array<{itemId: number, qtd: number, valor: number}>
+
+  contractId Int
+  contract   Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  financialRecords FinancialRecord[]
+
+  createdAt DateTime @default(now())
+}
+
+model DocumentFolder {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  parentId   Int? // Permite hierarquia de pastas
+  parent     DocumentFolder?  @relation("SubFolders", fields: [parentId], references: [id])
+  subFolders DocumentFolder[] @relation("SubFolders")
+
+  visibleToClient Boolean @default(false)
+
+  documents Document[]
+
+  createdAt DateTime @default(now())
+}
+
+model Document {
+  id   Int    @id @default(autoincrement())
+  nome String
+  tipo String // 'Planta', 'Relatório', 'Contrato', 'Outros'
+  url  String
+  data String
+
+  size       Int? // Tamanho em bytes
+  version    String  @default("R00")
+  uploadedBy String? // Nome do autor
+  isObsolete Boolean @default(false)
+  originalId Int? // Referência ao ID do documento original (R00)
+
+  visibleToClient Boolean @default(false)
+
+  folderId Int?
+  folder   DocumentFolder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  pins Pin[]
+
+  createdAt DateTime @default(now())
+}
+
+model ProjectMilestone {
+  id                   Int      @id @default(autoincrement())
+  title                String
+  targetDate           DateTime
+  completionPercentage Int      @default(0)
+  status               String   @default("Planejado") // "Planejado", "Em Andamento", "Concluído"
+  projectId            Int
+  project              Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model MaterialConsumption {
+  id              String        @id @default(cuid())
+  inventoryItemId Int
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  projectId       Int
+  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  quantityUsed    Float
+  appliedAt       String? // Ex: "Viga baldrame", "Alvenaria 2º Pav"
+  responsible     String? // Nome de quem retirou
+
+  createdAt DateTime @default(now())
+}
+
+model JobRole {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
+  accessLevel String     @default("Sem Acesso")
+  employees   Employee[]
+  createdAt   DateTime   @default(now())
+}
+
+model Company {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  employees Employee[]
+  createdAt DateTime   @default(now())
+}
+
+model EquipmentType {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
+model ClientApproval {
+  id           Int       @id @default(autoincrement())
+  projectId    Int
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title        String
+  type         String    @default("BM") // "BM", "Aditivo", "Documento"
+  status       String    @default("Pendente") // "Pendente", "Aprovado", "Reprovado"
+  amount       Float?
+  documentUrl  String?
+  requestedAt  DateTime  @default(now())
+  resolvedAt   DateTime?
+  clientName   String?
+  clientIp     String?
+  observations String?
+
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String // INFO, WARNING, SUCCESS, ERROR
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model SwotAnalysis {
+  id        Int     @id @default(autoincrement())
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  riskLevel      String // "Baixo", "Médio", "Alto"
+  strengths      String // JSON string
+  weaknesses     String // JSON string
+  opportunities  String // JSON string
+  threats        String // JSON string
+  mitigationPlan String // JSON string
+
+  source    String   @default("Gemini 1.5 Flash")
+  createdAt DateTime @default(now())
+}
+
+model MaterialList {
+  id         Int    @id @default(autoincrement())
+  codigo     String // Ex: LM-001
+  titulo     String
+  disciplina String // Ex: HIDRÁULICA
+  status     String @default("Em Edição") // 'Em Edição', 'Enviado Suprimentos', 'Finalizado'
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  itens MaterialListItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MaterialListItem {
+  id        Int    @id @default(autoincrement())
+  item      String // Nome do material
+  qtd       Float
+  unid      String
+  orcamento Float // Quantidade orçada
+
+  listId Int
+  list   MaterialList @relation(fields: [listId], references: [id], onDelete: Cascade)
+}
+
+// -----------------------------------------------------------------------
+// MÓDULO GENTE E GESTÃO (RH / DP)
+// -----------------------------------------------------------------------
+
+model Employee {
+  id            String    @id @default(cuid())
+  name          String
+  cpf           String    @unique
+  rg            String?
+  matricula     String?   @unique
+  birthDate     DateTime? // Data de Nascimento
+  status        String    @default("Ativo") // "Ativo", "Férias", "Demitido"...
+  baseSalary    Float?
+  regime        String    @default("CLT") // "CLT" ou "PJ"
+  encargos      Float     @default(68.0) // % de encargos (para CLT)
+  admissionDate DateTime?
+  demissionDate DateTime?
+  benefits      String?   // JSON or Text
+
+  jobRoleId Int?
+  jobRole   JobRole? @relation(fields: [jobRoleId], references: [id])
+
+  companyId Int?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  projects Project[]
+
+  userId Int?  @unique
+  user   User? @relation(fields: [userId], references: [id])
+
+  documents        EmployeeDocument[]
+  epis             EmployeeEpi[]
+  attendances      EmployeeAttendance[]
+  occurrences      EmployeeOccurrence[]
+  itAssets         ItAsset[]
+  itAssetHistories ItAssetHistory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EmployeeDocument {
+  id             String    @id @default(cuid())
+  type           String // "ASO", "NR-35", "NR-18", "CNH", "Contrato"
+  fileUrl        String?
+  issueDate      DateTime?
+  expirationDate DateTime?
+  status         String    @default("Válido") // Válido, Vencido, Vencendo
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EmployeeEpi {
+  id              String    @id @default(cuid())
+  equipmentName   String // "Capacete", "Bota", "Luva"
+  caNumber        String? // Certificado de Aprovação
+  deliveryDate    DateTime  @default(now())
+  replacementDate DateTime?
+  returned        Boolean   @default(false)
+  signatureUrl    String?
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EmployeeAttendance {
+  id             String   @id @default(cuid())
+  date           DateTime
+  status         String // "Presente", "Falta Injustificada", "Falta Justificada", "Férias", "Atraso"
+  hoursWorked    Float    @default(0)
+  overtimeHours  Float    @default(0)
+  certificateUrl String?
+  observations   String?
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EmployeeOccurrence {
+  id          String   @id @default(cuid())
+  type        String // "Advertência Verbal", "Advertência Escrita", "Suspensão", "Promoção", "Feedback"
+  date        DateTime @default(now())
+  description String
+  documentUrl String?
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -----------------------------------------------------------------------
+// MÓDULO GENTE E GESTÃO: RECRUTAMENTO E SELEÇÃO
+// -----------------------------------------------------------------------
+
+model Candidate {
+  id        String  @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  position  String // "Engenheiro", "Pedreiro", etc.
+  status    String  @default("Triagem") // "Triagem", "Entrevista", "Proposta", "Contratado", "Reprovado"
+  resumeUrl String?
+  feedback  String?
+
+  projectId Int?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -----------------------------------------------------------------------
+// MÓDULO TECNOLOGIA DA INFORMAÇÃO (T.I.)
+// -----------------------------------------------------------------------
+
+model ItAsset {
+  id                 String    @id @default(cuid())
+  tag                String    @unique // Patrimônio / Service Tag
+  category           String // Notebook, Celular, Tablet, Monitor
+  brand              String? // Dell, Apple, Samsung
+  model              String? // Latitude 3420, iPhone 13
+  status             String    @default("Disponível") // Disponível, Em Uso, Manutenção, Descartado
+  purchaseDate       DateTime?
+  warrantyExpiration DateTime?
+  lastMaintenance    DateTime?
+
+  employeeId String?
+  employee   Employee? @relation(fields: [employeeId], references: [id])
+
+  history ItAssetHistory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ItAssetHistory {
+  id         String    @id @default(cuid())
+  assetId    String
+  asset      ItAsset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  action     String // "Criado", "Atribuído", "Devolvido ao Estoque", "Enviado para Manutenção", etc
+  employeeId String?
+  employee   Employee? @relation(fields: [employeeId], references: [id])
+  notes      String?
+
+  createdAt DateTime @default(now())
+}
+
+model ItLicense {
+  id             String    @id @default(cuid())
+  softwareName   String // AutoCAD, MS Project, Office 365
+  type           String // Anual, Mensal, Perpétua
+  totalSeats     Int       @default(1)
+  usedSeats      Int       @default(0)
+  costPerSeat    Float     @default(0)
+  expirationDate DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ItTicket {
+  id          String @id @default(cuid())
+  title       String
+  description String
+  priority    String @default("Média") // Baixa, Média, Alta, Crítica
+  status      String @default("Aberto") // Aberto, Em Andamento, Aguardando Fornecedor, Fechado
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  projectId Int?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -----------------------------------------------------------------------
+// CONFIGURAÇÕES GERAIS DO SISTEMA
+// -----------------------------------------------------------------------
+
+model SystemSetting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
