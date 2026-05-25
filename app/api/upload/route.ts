@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY) {
       return new Promise<NextResponse>((resolve, reject) => {
         cloudinary.uploader.upload_stream(
-          { folder: 'obrasys_rdos' },
+          { folder: 'obrasys_rdos', resource_type: 'auto' },
           (error, result) => {
             if (error) {
               console.error('Cloudinary Error:', error);

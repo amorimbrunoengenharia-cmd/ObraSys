@@ -60,6 +60,7 @@ export default function ComercialPage() {
     const [loadingGeocode, setLoadingGeocode] = useState(false);
     const [latitude, setLatitude] = useState('');
     const [longitude, setLongitude] = useState('');
+    const [existingContractUrl, setExistingContractUrl] = useState<string | null>(null);
 
     const [locationConfirmed, setLocationConfirmed] = useState(false);
     const [showMiniMap, setShowMiniMap] = useState(false);
@@ -226,7 +227,7 @@ export default function ComercialPage() {
                     d.setDate(d.getDate() + parseInt(executionDays));
                     return d.toISOString();
                 })() : undefined,
-                contractFileUrl: uploadedUrl,
+                contractFileUrl: uploadedUrl || existingContractUrl || undefined,
                 budgetItems: budgetItems.map(it => ({
                     classificacaoDRE: it.classificacaoDRE,
                     subItem: it.subItem,
@@ -294,6 +295,8 @@ export default function ComercialPage() {
         setState('');
         setLatitude('');
         setLongitude('');
+        setExistingContractUrl(null);
+        setContractFile(null);
 
         setEstimateId('');
         setLocationConfirmed(false);
@@ -315,6 +318,8 @@ export default function ComercialPage() {
         setTaxPercent(project.taxPercent?.toString() || '0');
         setRetentionRule(project.retentionRule || 'AT_END');
         setRetentionDays(project.retentionDays?.toString() || '0');
+        setExistingContractUrl(project.contractFileUrl || null);
+        setContractFile(null);
         
         if (project.estimates && project.estimates.length > 0) {
             setEstimateId(project.estimates[0].id);
@@ -756,6 +761,12 @@ export default function ComercialPage() {
                                             onChange={e => setContractFile(e.target.files?.[0] || null)}
                                             className="w-full p-3 bg-slate-50 dark:bg-[#0B1121] border border-dashed border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-500 outline-none focus:border-blue-500 transition-all cursor-pointer file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                                         />
+                                        {existingContractUrl && !contractFile && (
+                                            <p className="text-xs text-blue-500 mt-2 font-semibold">
+                                                ✅ Um contrato já foi anexado. <a href={existingContractUrl} target="_blank" rel="noreferrer" className="underline hover:text-blue-600">Ver arquivo atual</a>.
+                                                Suba um novo arquivo apenas se quiser substituir.
+                                            </p>
+                                        )}
                                     </div>
                                 )}
                             </div>
