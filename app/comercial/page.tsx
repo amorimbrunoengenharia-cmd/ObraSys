@@ -763,7 +763,15 @@ export default function ComercialPage() {
                                         />
                                         {existingContractUrl && !contractFile && (
                                             <p className="text-xs text-blue-500 mt-2 font-semibold">
-                                                ✅ Um contrato já foi anexado. <a href={existingContractUrl} target="_blank" rel="noreferrer" className="underline hover:text-blue-600">Ver arquivo atual</a>.
+                                                ✅ Um contrato já foi anexado. 
+                                                <a 
+                                                    href={existingContractUrl.includes('/image/upload/') ? existingContractUrl.replace('/image/upload/', '/image/upload/fl_attachment/') : existingContractUrl} 
+                                                    target="_blank" 
+                                                    rel="noreferrer" 
+                                                    className="underline hover:text-blue-600 ml-1"
+                                                >
+                                                    Ver arquivo atual
+                                                </a>.
                                                 Suba um novo arquivo apenas se quiser substituir.
                                             </p>
                                         )}

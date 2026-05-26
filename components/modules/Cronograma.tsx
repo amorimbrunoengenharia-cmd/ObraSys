@@ -407,46 +407,54 @@ export default function Cronograma({ proj, onRefresh }: any) {
       
       if (!container) return;
 
-      // Armazenar estilos originais
-      const origContainerStyle = container.style.cssText;
-      let origTableStyle = '';
-      let origGanttStyle = '';
-
-      // Forçar expansão para caber tudo no canvas sem scroll
-      container.style.width = 'max-content';
-      container.style.height = 'max-content';
-      container.style.overflow = 'visible';
-      container.style.display = 'flex';
+      // Criar clone para não afetar o DOM original
+      const clone = container.cloneNode(true) as HTMLElement;
+      clone.style.position = 'absolute';
+      clone.style.left = '-9999px';
+      clone.style.top = '-9999px';
+      clone.style.width = 'max-content';
+      clone.style.height = 'max-content';
+      clone.style.overflow = 'visible';
+      clone.style.display = 'flex';
+      
+      const tableDiv = clone.querySelector('#table-scroll-container') as HTMLElement;
+      const ganttDiv = clone.querySelector('#gantt-scroll-container') as HTMLElement;
       
       if (tableDiv) {
-          origTableStyle = tableDiv.style.cssText;
           tableDiv.style.overflow = 'visible';
           tableDiv.style.width = 'max-content';
           tableDiv.style.height = 'max-content';
       }
 
       if (ganttDiv) {
-          origGanttStyle = ganttDiv.style.cssText;
           ganttDiv.style.overflow = 'visible';
           ganttDiv.style.width = 'max-content';
           ganttDiv.style.height = 'max-content';
           ganttDiv.style.flex = 'none';
       }
 
-      // Pequeno delay para o navegador aplicar os estilos
+      // Ocultar SVGs de setas no clone para evitar crash do html2canvas com SVG markers
+      const svgs = clone.querySelectorAll('svg');
+      svgs.forEach(svg => {
+         if (svg.innerHTML.includes('marker')) {
+             svg.style.display = 'none';
+         }
+      });
+
+      document.body.appendChild(clone);
+
+      // Pequeno delay para o navegador renderizar o clone
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      const canvas = await html2canvas(container, {
+      const canvas = await html2canvas(clone, {
         scale: 2, 
         useCORS: true,
         backgroundColor: '#0B1121',
         logging: false
       });
 
-      // Restaurar estilos imediatamente após o screenshot
-      container.style.cssText = origContainerStyle;
-      if (tableDiv) tableDiv.style.cssText = origTableStyle;
-      if (ganttDiv) ganttDiv.style.cssText = origGanttStyle;
+      // Limpar clone
+      document.body.removeChild(clone);
 
       const imgData = canvas.toDataURL('image/png');
       
