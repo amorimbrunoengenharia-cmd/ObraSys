@@ -81,23 +81,25 @@ export default function Cronograma({ proj, onRefresh }: any) {
       return new Date(proj?.createdAt || Date.now());
   }, [proj, rawTarefas]);
 
-  // --- LÓGICA DE WBS DINÂMICA ---
+  // --- LÓGICA DE WBS (NATURAL SORT & INFERÊNCIA DE NÍVEL) ---
   const tarefas = useMemo(() => {
-    let sorted = [...rawTarefas].sort((a, b) => (a.order || 0) - (b.order || 0));
-    const counters: Record<number, number> = {};
+    const sortWBS = (a: any, b: any) => {
+        const p1 = (a.wbs || "").split('.').map(Number);
+        const p2 = (b.wbs || "").split('.').map(Number);
+        for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
+            const num1 = p1[i] || 0;
+            const num2 = p2[i] || 0;
+            if (num1 !== num2) return num1 - num2;
+        }
+        return 0;
+    };
+    
+    let sorted = [...rawTarefas].sort(sortWBS);
 
     return sorted.map((t, index) => {
-      const level = t.level || 0;
-      counters[level] = (counters[level] || 0) + 1;
-      for (let i = level + 1; i < 10; i++) counters[i] = 0;
-
-      let wbs = "";
-      if (level === 0) {
-        wbs = counters[0].toString();
-      } else {
-        const parentWBS = sorted.slice(0, index).reverse().find(p => (p.level || 0) < level)?.wbs || "";
-        wbs = `${parentWBS}.${counters[level]}`;
-      }
+      const wbs = t.wbs || "";
+      const level = Math.max(0, wbs.split('.').length - 1);
+      const isSummary = sorted.some((child, i) => i > index && (child.wbs || "").startsWith(wbs + '.') && child.wbs !== wbs);
       
       let start = t.start;
       let duration = t.duration;
@@ -112,8 +114,8 @@ export default function Cronograma({ proj, onRefresh }: any) {
           }
       }
       
-      if (t.isSummary) {
-        const nextSameLevelIndex = sorted.findIndex((c, i) => i > index && (c.level || 0) <= level);
+      if (isSummary) {
+        const nextSameLevelIndex = sorted.findIndex((c, i) => i > index && Math.max(0, (c.wbs || "").split('.').length - 1) <= level);
         const subTasks = nextSameLevelIndex === -1 ? sorted.slice(index + 1) : sorted.slice(index + 1, nextSameLevelIndex);
         
         if (subTasks.length > 0) {
@@ -140,11 +142,23 @@ export default function Cronograma({ proj, onRefresh }: any) {
       } else if (varDays > 0) {
           statusLabel = "Atenção";
           statusColor = "bg-amber-500/10 text-amber-500 border-amber-500/20";
+      } else if (t.status === 'blocked') {
+          statusLabel = "Impedido";
+          statusColor = "bg-red-500/10 text-red-500 border-red-500/20";
       }
 
-      return { ...t, wbs, start, duration, statusLabel, statusColor };
+      return { 
+          ...t, 
+          wbs,
+          level,
+          isSummary,
+          start, 
+          duration,
+          statusLabel,
+          statusColor
+      };
     });
-  }, [rawTarefas]);
+  }, [rawTarefas, dynamicBaseDate]);
 
   // CÁLCULO DA CURVA S COM GRANULARIDADE (UTILITÁRIO CENTRALIZADO)
   const sCurveData = useMemo(() => {
@@ -233,10 +247,13 @@ export default function Cronograma({ proj, onRefresh }: any) {
   };
 
   const handleAddTask = async () => {
+    const topLevelTasks = (proj?.tasks || []).map((t: any) => parseInt(t.wbs)).filter((n: any) => !isNaN(n));
+    const nextWbs = topLevelTasks.length > 0 ? (Math.max(...topLevelTasks) + 1).toString() : "1";
+    
     const res = await createKanbanTask({
       title: "Nova Atividade",
       projectId: proj.id,
-      wbs: "1.1",
+      wbs: nextWbs,
       priority: "media"
     });
     if (res.success && res.data) {
@@ -754,15 +771,9 @@ export default function Cronograma({ proj, onRefresh }: any) {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Nível (Hierarquia WBS)</label>
-                            <input type="number" min="0" max="5" disabled={isMestre} value={editingTask.level || 0} onChange={e => setEditingTask({...editingTask, level: Number(e.target.value)})} className="w-full p-3 bg-[#0B1121] border border-slate-700 rounded-xl text-sm text-white outline-none disabled:opacity-50" title="Use 0 para Tarefa Mãe principal, 1 para Tarefa Filha, 2 para Neta, etc."/>
-                        </div>
-                        <div>
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Ordem na Lista</label>
-                            <input type="number" disabled={isMestre} value={editingTask.order || 0} onChange={e => setEditingTask({...editingTask, order: Number(e.target.value)})} className="w-full p-3 bg-[#0B1121] border border-slate-700 rounded-xl text-sm text-white outline-none disabled:opacity-50"/>
-                        </div>
+                    <div>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Estrutura WBS (Ex: 1, 1.1, 2)</label>
+                        <input type="text" disabled={isMestre} value={editingTask.wbs || ''} onChange={e => setEditingTask({...editingTask, wbs: e.target.value})} className="w-full p-3 bg-[#0B1121] border border-slate-700 rounded-xl text-sm text-white outline-none disabled:opacity-50" placeholder="Ex: 1.1.2"/>
                     </div>
 
                     <div>
