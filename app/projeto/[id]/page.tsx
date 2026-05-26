@@ -122,8 +122,6 @@ export default function ProjectPage() {
       const res = await approveMeasurement(medicaoId);
       if (res.success) {
           refreshData();
-          setNotifications(prev => [{ id: Date.now(), title: "Sucesso", msg: `BM aprovado com sucesso!`, type: "success", time: "Agora" }, ...prev]);
-          setShowNotif(true); setTimeout(() => setShowNotif(false), 3000);
       } else {
           alert("Erro ao aprovar BM: " + res.error);
       }
