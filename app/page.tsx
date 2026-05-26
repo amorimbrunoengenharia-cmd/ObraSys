@@ -225,7 +225,7 @@ export default async function Home() {
         const label = monthLabels[d.getMonth()];
         const monthRecords = chartRecords.filter(r => r.dataVencimento && monthLabels[r.dataVencimento.getMonth()] === label);
         
-        const receitas = monthRecords.filter(r => r.tipo === 'ENTRADA' && r.status === 'Recebido').reduce((s, r) => s + (r.valorLiquido || r.valorBruto || 0), 0);
+        const receitas = monthRecords.filter(r => r.tipo === 'ENTRADA' && (r.status === 'Recebido' || r.status === 'Pago')).reduce((s, r) => s + (r.valorLiquido || r.valorBruto || 0), 0);
         const despesas = monthRecords.filter(r => r.tipo === 'SAÍDA' && r.status === 'Pago').reduce((s, r) => s + (r.valorLiquido || r.valorBruto || 0), 0);
         
         flowData.push({ mes: label, receitas, despesas, saldo: receitas - despesas });

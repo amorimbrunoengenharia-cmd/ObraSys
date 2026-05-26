@@ -354,9 +354,9 @@ export default function GlobalDashboard({ initialKpis, initialObras, initialChar
                                         formatter={(value: any) => formatter.format(value)}
                                         labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
                                     />
-                                    <Area name="Receitas" type="monotone" dataKey="receitas" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorReceita)" />
-                                    <Area name="Despesas" type="monotone" dataKey="despesas" stroke="#ef4444" strokeWidth={2} fill="transparent" strokeDasharray="5 5" />
-                                    <Line name="Saldo Acumulado" type="monotone" dataKey="saldo" stroke="#fbbf24" strokeWidth={3} dot={{ fill: '#fbbf24', strokeWidth: 2, r: 4 }} />
+                                    <Area name="Receitas" type="linear" dataKey="receitas" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorReceita)" />
+                                    <Area name="Despesas" type="linear" dataKey="despesas" stroke="#ef4444" strokeWidth={2} fill="transparent" strokeDasharray="5 5" />
+                                    <Line name="Saldo Acumulado" type="linear" dataKey="saldo" stroke="#fbbf24" strokeWidth={3} dot={{ fill: '#fbbf24', strokeWidth: 2, r: 4 }} />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
