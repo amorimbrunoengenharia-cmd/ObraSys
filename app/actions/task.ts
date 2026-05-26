@@ -89,56 +89,106 @@ export async function updateTaskDetails(taskId: number, data: any) {
     }
 }
 
-export async function autoSchedule(triggerTaskId: number, visited = new Set<number>()) {
-    if (visited.has(triggerTaskId)) throw new Error("Circular dependency detected!");
-    visited.add(triggerTaskId);
-
+export async function autoSchedule(triggerTaskId: number) {
     const triggerTask = await prisma.task.findUnique({ where: { id: triggerTaskId } });
     if (!triggerTask) return;
 
-    // Encontrar todas as tarefas que dependem desta
-    const successors = await prisma.task.findMany({
-        where: { 
-            projectId: triggerTask.projectId,
-            predecessors: { contains: triggerTaskId.toString() } 
+    const allTasks = await prisma.task.findMany({ where: { projectId: triggerTask.projectId } });
+    
+    const taskMap = new Map<string, any>();
+    allTasks.forEach(t => {
+        taskMap.set(t.id.toString(), t);
+        if (t.wbs) taskMap.set(t.wbs.toString(), t);
+    });
+
+    const inDegree = new Map<number, number>();
+    const graph = new Map<number, number[]>(); 
+    const adj = new Map<number, any[]>(); 
+
+    allTasks.forEach(t => {
+        inDegree.set(t.id, 0);
+        graph.set(t.id, []);
+        adj.set(t.id, []);
+    });
+
+    allTasks.forEach(t => {
+        if (!t.predecessors) return;
+        const deps = t.predecessors.split(/[,;]/).map(d => d.trim()).filter(Boolean);
+        for (const depStr of deps) {
+            const parsed = parseDependency(depStr);
+            const parent = taskMap.get(parsed.key);
+            if (parent) {
+                graph.get(parent.id)!.push(t.id);
+                inDegree.set(t.id, inDegree.get(t.id)! + 1);
+                adj.get(t.id)!.push({ parentId: parent.id, type: parsed.type, lag: parsed.lag });
+            }
         }
     });
 
-    for (const succ of successors) {
-        const deps = succ.predecessors?.split(/[,;]/).map(d => d.trim()) || [];
-        let earliestStart = succ.start;
+    const queue: number[] = [];
+    allTasks.forEach(t => {
+        if (inDegree.get(t.id) === 0) queue.push(t.id);
+    });
 
-        for (const depStr of deps) {
-            const parsed = parseDependency(depStr);
-            if (parsed.id === triggerTaskId) {
-                const triggerEnd = triggerTask.start + triggerTask.duration;
+    const sortedIds: number[] = [];
+    while (queue.length > 0) {
+        const u = queue.shift()!;
+        sortedIds.push(u);
+        const children = graph.get(u) || [];
+        for (const v of children) {
+            inDegree.set(v, inDegree.get(v)! - 1);
+            if (inDegree.get(v) === 0) queue.push(v);
+        }
+    }
+
+    const startUpdates = new Map<number, number>();
+    
+    for (const id of sortedIds) {
+        const task = taskMap.get(id.toString());
+        const predecessors = adj.get(id) || [];
+        
+        if (predecessors.length > 0) {
+            let earliestStart = 0;
+            for (const p of predecessors) {
+                const parentId = p.parentId;
+                const parentStart = startUpdates.has(parentId) ? startUpdates.get(parentId)! : taskMap.get(parentId.toString()).start;
+                const parentDur = taskMap.get(parentId.toString()).duration;
+                const parentEnd = parentStart + parentDur;
                 
-                switch (parsed.type) {
-                    case 'FS': earliestStart = triggerEnd + parsed.lag; break;
-                    case 'SS': earliestStart = triggerTask.start + parsed.lag; break;
-                    case 'FF': earliestStart = (triggerEnd + parsed.lag) - succ.duration; break;
-                    case 'SF': earliestStart = (triggerTask.start + parsed.lag) - succ.duration; break;
+                let candidateStart = 0;
+                switch (p.type) {
+                    case 'FS': candidateStart = parentEnd + p.lag; break;
+                    case 'SS': candidateStart = parentStart + p.lag; break;
+                    case 'FF': candidateStart = (parentEnd + p.lag) - task.duration; break;
+                    case 'SF': candidateStart = (parentStart + p.lag) - task.duration; break;
                 }
+                if (candidateStart > earliestStart) earliestStart = candidateStart;
+            }
+            if (earliestStart < 0) earliestStart = 0;
+            
+            if (earliestStart !== task.start) {
+                startUpdates.set(id, earliestStart);
             }
         }
+    }
 
-        if (earliestStart !== succ.start) {
+    if (startUpdates.size > 0) {
+        for (const [id, newStart] of startUpdates.entries()) {
             await prisma.task.update({
-                where: { id: succ.id },
-                data: { start: earliestStart }
+                where: { id },
+                data: { start: newStart }
             });
-            await autoSchedule(succ.id, new Set(visited));
         }
     }
 }
 
 function parseDependency(dep: string) {
-    const match = dep.match(/^(\d+)(FS|SS|FF|SF)?([+-]\d+d)?$/i);
-    if (!match) return { id: parseInt(dep), type: 'FS', lag: 0 };
+    const match = dep.match(/^([\d\.]+)(FS|SS|FF|SF)?([+-]\d+d)?$/i);
+    if (!match) return { key: dep.trim(), type: 'FS', lag: 0 };
     return {
-        id: parseInt(match[1]),
+        key: match[1],
         type: match[2]?.toUpperCase() || 'FS',
-        lag: match[3] ? parseInt(match[3].replace('d', '').replace('+', '')) : 0
+        lag: match[3] ? parseInt(match[3].toLowerCase().replace('d', '').replace('+', '')) : 0
     };
 }
 

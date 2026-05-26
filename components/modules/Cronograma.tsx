@@ -359,18 +359,38 @@ export default function Cronograma({ proj, onRefresh }: any) {
                     if (pIdx === -1) return null;
                     
                     const parent = visibleTarefas[pIdx];
-                    const x1 = (parent.start + parent.duration) * scale;
+                    
+                    const isSS = /SS/i.test(pMatchRaw);
+                    const isFF = /FF/i.test(pMatchRaw);
+                    const isSF = /SF/i.test(pMatchRaw);
+                    
+                    const pStart = parent.start * scale;
+                    const pEnd = (parent.start + parent.duration) * scale;
+                    const tStart = t.start * scale;
+                    const tEnd = (t.start + t.duration) * scale;
+                    
                     const y1 = pIdx * rowHeight + rowHeight / 2;
-                    const x2 = t.start * scale;
                     const y2 = idx * rowHeight + rowHeight / 2;
+                    
+                    let pathD = "";
+                    if (isSS) {
+                        pathD = `M ${pStart} ${y1} L ${pStart - 10} ${y1} L ${pStart - 10} ${y2} L ${tStart} ${y2}`;
+                    } else if (isFF) {
+                        pathD = `M ${pEnd} ${y1} L ${pEnd + 10} ${y1} L ${pEnd + 10} ${y2} L ${tEnd} ${y2}`;
+                    } else if (isSF) {
+                        pathD = `M ${pStart} ${y1} L ${pStart - 10} ${y1} L ${pStart - 10} ${y2} L ${tEnd} ${y2}`;
+                    } else {
+                        // FS (Default)
+                        pathD = `M ${pEnd} ${y1} L ${pEnd + 10} ${y1} L ${pEnd + 10} ${y2} L ${tStart} ${y2}`;
+                    }
                     
                     return (
                         <path 
                             key={`${t.id}-${pMatch}`} 
-                            d={`M ${x1} ${y1} L ${x1 + 10} ${y1} L ${x1 + 10} ${y2} L ${x2} ${y2}`} 
+                            d={pathD} 
                             fill="none" 
                             stroke="#3b82f6" 
-                            strokeWidth="1"
+                            strokeWidth="1.5"
                             markerEnd="url(#arrowhead)"
                         />
                     );
