@@ -239,6 +239,7 @@ export async function approveMeasurement(measurementId: number) {
                             centroCusto: project.name,
                             cidade: project.city || '',
                             estado: project.state || '',
+                            setor: 'Comercial/Contrato',
                             projectId: project.id,
                             measurementId: Number(measurementId) // RASTREABILIDADE
                         }
@@ -283,5 +284,25 @@ export async function approveMeasurement(measurementId: number) {
     } catch (e: any) {
         console.error("Erro ao aprovar medição:", e);
         return { success: false, error: "Erro na integração financeira: " + e.message };
+    }
+}
+
+export async function deleteMeasurement(measurementId: number) {
+    console.log("Dados recebidos para deleteMeasurement:", { measurementId });
+    try {
+        const measurement = await prisma.measurement.delete({ 
+            where: { id: Number(measurementId) },
+            include: { contract: true }
+        });
+        
+        if (measurement.contract?.projectId) {
+            revalidatePath(`/projeto/${measurement.contract.projectId}`);
+        }
+        revalidatePath('/');
+        triggerObsidianSync();
+        return { success: true };
+    } catch (e: any) {
+        console.error("Erro ao excluir medição:", e);
+        return { success: false, error: e.message };
     }
 }

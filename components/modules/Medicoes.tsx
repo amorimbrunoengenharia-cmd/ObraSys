@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from 'recharts';
 import { Modal } from '../Shared';
-import { createContract, addContractItem, createMeasurement, addAdditive, deleteContract, deleteContractItem, updateContractItem } from '../../app/actions/measurements';
+import { createContract, addContractItem, createMeasurement, addAdditive, deleteContract, deleteContractItem, updateContractItem, deleteMeasurement } from '../../app/actions/measurements';
 import { getSuppliers, getContacts } from '../../app/actions/finance';
 import MeasurementPDF from './medicoes_components/MeasurementPDF';
 
@@ -308,6 +308,24 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
           alert("Erro ao processar item: " + (res.error || "Verifique o console para detalhes."));
       }
   };
+
+    const handleDeleteBM = async (id: number) => {
+        if (!confirm("Tem certeza que deseja excluir esta medição? Isso é irreversível e excluirá o histórico.")) return;
+        setIsSubmitting(true);
+        try {
+            const res = await deleteMeasurement(id);
+            if (res.success) {
+                alert("Medição excluída com sucesso.");
+                onRefresh();
+            } else {
+                alert("Erro ao excluir medição: " + res.error);
+            }
+        } catch (e: any) {
+            alert("Erro: " + e.message);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
   const handleDeleteContract = async (id: number) => {
       if (!confirm("Tem certeza que deseja excluir este contrato? Todas as medições vinculadas serão perdidas.")) return;
@@ -929,6 +947,13 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
                                                         className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-400 hover:text-blue-500 transition-colors"
                                                     >
                                                         <Printer size={16}/>
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteBM(m.id); }} 
+                                                        title="Excluir Medição" 
+                                                        className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
+                                                    >
+                                                        <Trash2 size={16}/>
                                                     </button>
                                                 </div>
                                             </div>
