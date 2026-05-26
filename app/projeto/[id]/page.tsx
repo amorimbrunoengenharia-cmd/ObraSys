@@ -72,7 +72,7 @@ export default function ProjectPage() {
                         location: p.location,
                         desc: p.description,
                         image: p.image ? p.image.replace('/uploads/', '/api/images/') : '',
-                        tags: p.tags.split(','),
+                        tags: p.tags ? p.tags.split(',') : [],
                         likes: p.likes,
                         comments: p.comments,
                         createdAt: p.createdAt

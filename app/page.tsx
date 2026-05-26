@@ -54,7 +54,7 @@ export default async function Home() {
     const upcomingTransactions = await prisma.financialRecord.findMany({
         where: {
             tipo: 'SAÍDA',
-            status: { in: ['PENDENTE', 'A PAGAR', 'A Vencer', 'AGENDADO'] },
+            status: { in: ['Pendente', 'A Pagar', 'A Vencer', 'Agendado', 'Atrasado', 'PENDENTE', 'A PAGAR', 'AGENDADO'] },
             dataVencimento: { gte: today, lte: thirtyDaysLater },
             ...(Object.keys(whereClause).length > 0 ? { project: whereClause } : {})
         }
@@ -263,10 +263,10 @@ export default async function Home() {
 
     // 6. KPIs GLOBAIS
     const globalBudget = projects.reduce((acc, curr) => acc + (curr.budget || 0), 0);
-    const globalSpent = projects.reduce((acc, curr) => acc + curr.financials.filter(f => f.status === 'Pago').reduce((sum, f) => sum + (f.valorBruto || 0), 0), 0);
+    const globalSpent = projects.reduce((acc, curr) => acc + curr.financials.filter(f => f.tipo === 'SAÍDA' && (f.status === 'Pago' || f.status === 'Recebido')).reduce((sum, f) => sum + (f.valorBruto || 0), 0), 0);
     
-    // Faturamento Realizado (Receitas) -> ENTRADA e Recebido na tabela FinancialRecord
-    const globalRevenue = projects.reduce((acc, p) => acc + p.financials.filter(f => f.tipo === 'ENTRADA' && f.status === 'Recebido').reduce((sum, f) => sum + (f.valorLiquido || f.valorBruto || 0), 0), 0);
+    // Faturamento Realizado (Receitas) -> ENTRADA e Recebido/Pago na tabela FinancialRecord
+    const globalRevenue = projects.reduce((acc, p) => acc + p.financials.filter(f => f.tipo === 'ENTRADA' && (f.status === 'Recebido' || f.status === 'Pago')).reduce((sum, f) => sum + (f.valorLiquido || f.valorBruto || 0), 0), 0);
     
     const compactFormatter = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
 

@@ -35,7 +35,7 @@ export async function getProjectById(id: string) {
             approvals: true,
             milestones: true,
             purchaseRequests: {
-                include: { items: { include: { material: true } }, project: true, quotations: { include: { supplier: true } } }
+                include: { items: { include: { material: true } }, quotations: { include: { supplier: true } } }
             },
             materialConsumptions: {
                 include: { inventoryItem: true },
