@@ -73,9 +73,9 @@ export async function createFinancialRecord(data: any) {
                 inss: Number(data.inss || 0),
                 valorLiquido: Number(data.valorBruto) 
                     - Number(data.impostosRetidos || 0) 
-                    - Number(data.caucaoRetida || 0)
-                    - Number(data.iss || 0)
-                    - Number(data.inss || 0),
+                    - (Number(data.valorBruto) * (Number(data.caucaoRetida || 0) / 100))
+                    - (Number(data.valorBruto) * (Number(data.iss || 0) / 100))
+                    - (Number(data.valorBruto) * (Number(data.inss || 0) / 100)),
                 status: data.status,
                 projectId: data.projectId ? Number(data.projectId) : null
             }
@@ -164,9 +164,9 @@ export async function updateFinancialRecord(id: number, data: any) {
                 inss: Number(data.inss || 0),
                 valorLiquido: Number(data.valorBruto) 
                     - Number(data.impostosRetidos || 0) 
-                    - Number(data.caucaoRetida || 0)
-                    - Number(data.iss || 0)
-                    - Number(data.inss || 0),
+                    - (Number(data.valorBruto) * (Number(data.caucaoRetida || 0) / 100))
+                    - (Number(data.valorBruto) * (Number(data.iss || 0) / 100))
+                    - (Number(data.valorBruto) * (Number(data.inss || 0) / 100)),
                 status: data.status,
                 projectId: data.projectId ? Number(data.projectId) : null
             }
