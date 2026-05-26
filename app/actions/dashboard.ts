@@ -12,15 +12,33 @@ export async function getDashboardData() {
         } as any
     }) as any[];
 
+    // Contagem real de funcionários
+    const efetivo_total = await prisma.employee.count({ where: { status: 'Ativo' } });
+
+    // Eficiência global (tarefas concluídas / total)
+    const allTasks = await prisma.task.findMany({ select: { status: true, columnId: true } });
+    const totalTasksAll = allTasks.length;
+    const completedTasksAll = allTasks.filter(t => t.status === 'Concluído' || t.columnId === 'done').length;
+    const eficiencia_global = totalTasksAll > 0 ? (completedTasksAll / totalTasksAll) * 100 : 0;
+
+    // Projetos no prazo
+    const now = new Date();
+    const projetos_no_prazo_count = projects.filter(p => {
+        if (p.status === 'Concluído') return true;
+        if (!p.estimatedDelivery) return true;
+        return new Date(p.estimatedDelivery) >= now;
+    }).length;
+    const projetos_no_prazo = projects.length > 0 ? (projetos_no_prazo_count / projects.length) * 100 : 100;
+
     // Calcular KPIs Globais
     const kpis = {
         obras_ativas: projects.length,
         faturamento_total: "0",
-        efetivo_total: 145, // mock
+        efetivo_total: efetivo_total,
         alertas_criticos: 0,
         margem_lucro: "0%",
-        eficiencia_global: 94.2, // mock
-        projetos_no_prazo: 100 // mock
+        eficiencia_global: Number(eficiencia_global.toFixed(1)),
+        projetos_no_prazo: Number(projetos_no_prazo.toFixed(1))
     };
 
     let faturamentoTotal = 0;

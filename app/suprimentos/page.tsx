@@ -222,7 +222,7 @@ function SuprimentosContent() {
     }, [orders, selectedProject, searchTerm]);
 
     // Calculate Summary Metrics
-    const capitalEmEstoque = filteredInventory.reduce((acc, item) => acc + (item.quantidadeAtual * 35), 0); // Cost Mockup for now
+    const capitalEmEstoque = filteredInventory.reduce((acc, item) => acc + (item.quantidadeAtual * (item.averageCost || 0)), 0); 
     const pendingRequestsCount = filteredRequests.filter(r => r.status === 'PENDENTE').length;
     const criticalStockCount = filteredInventory.filter(item => item.quantidadeAtual < item.estoqueMinimo).length;
     const transitRequestsCount = filteredRequests.filter(r => r.status === 'APROVADO').length;
@@ -759,14 +759,14 @@ function SuprimentosContent() {
                                                 </td>
                                                 <td className="px-6 py-5 text-right">
                                                     <p className="font-black text-slate-700 dark:text-slate-200 text-sm">
-                                                        {formatter.format(35.00)} 
+                                                        {formatter.format(item.averageCost || 0)} 
                                                         <span className="text-slate-400 text-xs font-bold ml-1">/ {item.unidade}</span>
                                                     </p>
                                                     <div className={`flex items-center justify-end gap-1 text-[9px] font-black uppercase text-emerald-500`}>
                                                         <TrendingDown size={10}/> 0% vs. última
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-5 text-right font-black text-slate-700 dark:text-slate-200 text-sm">{formatter.format(item.quantidadeAtual * 35)}</td>
+                                                <td className="px-6 py-5 text-right font-black text-slate-700 dark:text-slate-200 text-sm">{formatter.format(item.quantidadeAtual * (item.averageCost || 0))}</td>
                                                 <td className="px-6 py-5 text-center">
                                                     <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
                                                         item.quantidadeAtual >= item.estoqueMinimo ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700 animate-pulse'

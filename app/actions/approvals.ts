@@ -52,7 +52,7 @@ export async function respondToApproval(projectId: number, approvalId: number, s
                         projectId: projectId,
                         descricao: `Faturamento: ${updatedApproval.title}`,
                         tipo: "ENTRADA",
-                        classificacaoDRE: "1. RECEITA OPERACIONAL",
+                        classificacaoDRE: "1. Receita Operacional",
                         centroCusto: updatedApproval.project.name,
                         clienteFornecedor: updatedApproval.project.clientName || clientName || "CLIENTE",
                         valorBruto: updatedApproval.amount,
@@ -61,6 +61,7 @@ export async function respondToApproval(projectId: number, approvalId: number, s
                         status: "A VENCER",
                         dataCompetencia: new Date(),
                         dataVencimento: new Date(new Date().setDate(new Date().getDate() + 15)), // Vencimento em 15 dias
+                        clientApprovalId: approvalId,
                     }
                 });
             }

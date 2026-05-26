@@ -540,7 +540,7 @@ export default function Orcamentos({ initialEstimates, projects, userRole }: { i
    if (view === 'editor' && selectedEstimate) {
     const consolidated = getConsolidatedResources();
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1121] flex flex-col">
+      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1121] text-slate-900 dark:text-slate-100 flex flex-col">
         {/* Editor Header */}
         <style dangerouslySetInnerHTML={{ __html: `
           @media print {
@@ -1411,7 +1411,7 @@ export default function Orcamentos({ initialEstimates, projects, userRole }: { i
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1121] font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1121] text-slate-900 dark:text-slate-100 font-sans">
       <header className="h-20 bg-white dark:bg-[#162032] border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-8 sticky top-0 z-50 no-print">
         <div className="flex items-center gap-6">
           {userRole !== 'Orçamentista' && (
