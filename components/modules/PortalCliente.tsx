@@ -104,8 +104,8 @@ export default function PortalCliente({ proj, localPosts, setLocalPosts, setActi
             : 0;
 
         return {
-            progFisico: Math.round(progFisico),
-            progFinanceiro: budget > 0 ? Math.round((spent / budget) * 100) : 0
+            progFisico: Math.min(100, Math.round(progFisico)),
+            progFinanceiro: budget > 0 ? Math.min(100, Math.round((spent / budget) * 100)) : 0
         };
     }, [proj]);
 
