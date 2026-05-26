@@ -763,12 +763,14 @@ export default function PortalCliente({ proj, localPosts, setLocalPosts, setActi
                                 </div>
                             </div>
                         ) : proj.status === 'Concluído' ? (
-                            <div className="relative flex flex-col items-center justify-center w-40 h-40 mb-2">
-                                <div className="w-full h-full rounded-full border-8 border-emerald-500 flex items-center justify-center bg-emerald-50 dark:bg-emerald-900/10">
-                                    <Check size={48} className="text-emerald-500" />
-                                </div>
-                                <div className="absolute flex flex-col items-center justify-center">
-                                    <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400">100%</span>
+                            <div className="relative flex items-center justify-center w-40 h-40 mb-2">
+                                <svg className="transform -rotate-90 w-full h-full absolute inset-0">
+                                    <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100 dark:text-slate-800" />
+                                    <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={2 * Math.PI * 70} strokeDashoffset={0} className="text-emerald-500" strokeLinecap="round" />
+                                </svg>
+                                <div className="absolute flex flex-col items-center justify-center gap-1">
+                                    <Check size={24} className="text-emerald-500" />
+                                    <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 leading-none mt-1">100%</span>
                                 </div>
                             </div>
                         ) : (
