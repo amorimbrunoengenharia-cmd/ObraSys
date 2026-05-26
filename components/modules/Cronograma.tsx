@@ -9,8 +9,8 @@ import { getStaff } from '../../app/actions/user';
 import { importMSProjectXML } from '../../app/actions/import';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calculateSCurve } from '../../lib/utils/sCurve';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
+import domtoimage from 'dom-to-image-more';
+import jsPDF from 'jspdf';
 
 export default function Cronograma({ proj, onRefresh }: any) {
   const { user } = useAuth();
@@ -433,10 +433,10 @@ export default function Cronograma({ proj, onRefresh }: any) {
           ganttDiv.style.flex = 'none';
       }
 
-      // Ocultar SVGs de setas no DOM para evitar crash do html2canvas com SVG markers
+      // Ocultar SVGs de setas no DOM para evitar crash com SVG markers
       const svgs = container.querySelectorAll('svg');
-      svgs.forEach(svg => {
-         if (svg.innerHTML.includes('marker')) {
+      svgs.forEach((svg: any) => {
+         if (svg.innerHTML && svg.innerHTML.includes('marker')) {
              hiddenElements.push(svg);
              svg.style.display = 'none';
          }
@@ -445,15 +445,18 @@ export default function Cronograma({ proj, onRefresh }: any) {
       // Pequeno delay para o navegador aplicar
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      const canvas = await html2canvas(container, {
-        scale: 2, 
-        useCORS: true,
-        backgroundColor: '#0B1121',
-        logging: false
+      // Usando dom-to-image-more que suporta 100% das cores CSS modernas (incluindo lab() e oklch())
+      // porque utiliza SVG <foreignObject> nativo do navegador em vez de um parser CSS manual (como o html2canvas faz)
+      const dataUrl = await domtoimage.toPng(container, {
+        bgcolor: '#0B1121',
+        width: container.scrollWidth,
+        height: container.scrollHeight,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left'
+        }
       });
 
-      const imgData = canvas.toDataURL('image/png');
-      
       // Criar PDF em formato A3 Paisagem para caber gráficos extensos
       const pdf = new jsPDF({
         orientation: 'landscape',
@@ -464,7 +467,12 @@ export default function Cronograma({ proj, onRefresh }: any) {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       
-      const imgRatio = canvas.width / canvas.height;
+      // Para manter a alta resolução sem canvas, calculamos via imagem
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise(resolve => { img.onload = resolve; });
+      
+      const imgRatio = img.width / img.height;
       
       let finalWidth = pdfWidth;
       let finalHeight = finalWidth / imgRatio;
@@ -478,7 +486,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
       const x = (pdfWidth - finalWidth) / 2;
       const y = (pdfHeight - finalHeight) / 2;
 
-      pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+      pdf.addImage(dataUrl, 'PNG', x, y, finalWidth, finalHeight);
       pdf.save(`Cronograma_${proj?.name || 'Projeto'}.pdf`);
       
     } catch (e: any) {
