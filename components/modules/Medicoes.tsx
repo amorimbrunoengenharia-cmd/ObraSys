@@ -760,7 +760,11 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
                                 <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-2xl group-hover:scale-110 transition-transform"><Plus size={20}/></div>
                                 <span className="text-[10px] font-black text-slate-500 uppercase">Aditivo</span>
                             </button>
-                            <button onClick={()=>setViewMode('nova')} className="flex flex-col items-center justify-center gap-2 p-4 bg-slate-900 dark:bg-blue-600 border border-transparent rounded-3xl hover:opacity-90 transition-all group shadow-xl shadow-blue-600/20">
+                            <button onClick={()=>{
+                                setImportedCronogramaItems([]);
+                                setNovaMedicao({ ref: '', periodo: '', iss: 0, inss: 0, itens: [] });
+                                setViewMode('nova');
+                            }} className="flex flex-col items-center justify-center gap-2 p-4 bg-slate-900 dark:bg-blue-600 border border-transparent rounded-3xl hover:opacity-90 transition-all group shadow-xl shadow-blue-600/20">
                                 <div className="p-3 bg-white/20 text-white rounded-2xl group-hover:scale-110 transition-transform"><Calculator size={20}/></div>
                                 <span className="text-[10px] font-black text-white uppercase">Medir (BM)</span>
                             </button>
@@ -945,7 +949,10 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
                         <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter">Emissão de Boletim de Medição (BM)</h3>
                         <p className="text-xs font-bold text-slate-400 uppercase">Obra: {proj.nome} • Contrato: {selectedContrato.empresa}</p>
                     </div>
-                    <button onClick={()=>setViewMode('contrato_detalhe')} title="Fechar Medição" className="p-3 bg-white dark:bg-slate-800 rounded-2xl border text-slate-500"><X size={20}/></button>
+                    <button onClick={()=>{
+                        setImportedCronogramaItems([]);
+                        setViewMode('contrato_detalhe');
+                    }} title="Fechar Medição" className="p-3 bg-white dark:bg-slate-800 rounded-2xl border text-slate-500"><X size={20}/></button>
                  </div>
 
                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
