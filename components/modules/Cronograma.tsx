@@ -195,50 +195,6 @@ export default function Cronograma({ proj, onRefresh }: any) {
   const [editingTask, setEditingTask] = useState<any>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
 
-  // CÁLCULOS DO GANTT PREMIUM
-  const ganttOffsetDays = useMemo(() => {
-    if (tarefas.length === 0) return 0;
-    const minStart = Math.min(...tarefas.map((t: any) => Number(t.start) || 0));
-    return Math.max(0, minStart - 5); // 5 days buffer
-  }, [tarefas]);
-
-  const ganttDaysCount = 200;
-  
-  const ganttDays = useMemo(() => {
-      const days = [];
-      const baseMs = dynamicBaseDate && !isNaN(dynamicBaseDate.getTime()) ? dynamicBaseDate.getTime() : Date.now();
-      for (let i = 0; i < ganttDaysCount; i++) {
-          const dayIndex = i + ganttOffsetDays;
-          days.push(new Date(baseMs + dayIndex * 24 * 60 * 60 * 1000));
-      }
-      return days;
-  }, [dynamicBaseDate, ganttOffsetDays]);
-
-  const ganttMonths = useMemo(() => {
-      const months: { label: string; days: number }[] = [];
-      if (ganttDays.length === 0) return months;
-      let currentMonth = ganttDays[0].getMonth();
-      let currentYear = ganttDays[0].getFullYear();
-      let currentCount = 0;
-      
-      for (const d of ganttDays) {
-          if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-              currentCount++;
-          } else {
-              const label = ganttDays[currentCount - 1].toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-              months.push({ label, days: currentCount });
-              currentMonth = d.getMonth();
-              currentYear = d.getFullYear();
-              currentCount = 1;
-          }
-      }
-      if (currentCount > 0) {
-          const label = ganttDays[ganttDays.length - 1].toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-          months.push({ label, days: currentCount });
-      }
-      return months;
-  }, [ganttDays]);
-
   // --- FUNÇÕES DE INTERAÇÃO ---
   const toggleCollapse = (id: number) => {
     const newCollapsed = new Set(collapsedTasks);
@@ -384,70 +340,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
 
   const handleExport = () => alert("⬇️ Gerando arquivo XML compatível com MS Project...");
 
-  // --- RENDERIZADOR DE LINHAS DE CONEXÃO (GANTT) ---
-  const renderGanttLines = () => {
-    const scale = 15; 
-    const rowHeight = 40; 
-    
-    return (
-        <svg className="absolute inset-0 pointer-events-none w-full h-full opacity-60">
-            {visibleTarefas.map((t: any, idx: number) => {
-                if (!t.predecessors) return null;
-                const preds = t.predecessors.split(/[,;]/);
-                
-                return preds.map((pStr: any) => {
-                    const pMatchRaw = pStr.trim();
-                    if (!pMatchRaw) return null;
-                    const pMatch = pMatchRaw.replace(/[A-Za-z+-\s].*$/, '');
-                    const pIdx = visibleTarefas.findIndex(x => x.wbs === pMatch || x.id.toString() === pMatch);
-                    if (pIdx === -1) return null;
-                    
-                    const parent = visibleTarefas[pIdx];
-                    
-                    const isSS = /SS/i.test(pMatchRaw);
-                    const isFF = /FF/i.test(pMatchRaw);
-                    const isSF = /SF/i.test(pMatchRaw);
-                    
-                    const pStart = (parent.start - ganttOffsetDays) * scale;
-                    const pEnd = ((parent.start + parent.duration) - ganttOffsetDays) * scale;
-                    const tStart = (t.start - ganttOffsetDays) * scale;
-                    const tEnd = ((t.start + t.duration) - ganttOffsetDays) * scale;
-                    
-                    const y1 = pIdx * rowHeight + rowHeight / 2;
-                    const y2 = idx * rowHeight + rowHeight / 2;
-                    
-                    let pathD = "";
-                    if (isSS) {
-                        pathD = `M ${pStart} ${y1} L ${pStart - 10} ${y1} L ${pStart - 10} ${y2} L ${tStart} ${y2}`;
-                    } else if (isFF) {
-                        pathD = `M ${pEnd} ${y1} L ${pEnd + 10} ${y1} L ${pEnd + 10} ${y2} L ${tEnd} ${y2}`;
-                    } else if (isSF) {
-                        pathD = `M ${pStart} ${y1} L ${pStart - 10} ${y1} L ${pStart - 10} ${y2} L ${tEnd} ${y2}`;
-                    } else {
-                        // FS (Default)
-                        pathD = `M ${pEnd} ${y1} L ${pEnd + 10} ${y1} L ${pEnd + 10} ${y2} L ${tStart} ${y2}`;
-                    }
-                    
-                    return (
-                        <path 
-                            key={`${t.id}-${pMatch}`} 
-                            d={pathD} 
-                            fill="none" 
-                            stroke="#3b82f6" 
-                            strokeWidth="1.5"
-                            markerEnd="url(#arrowhead)"
-                        />
-                    );
-                });
-            })}
-            <defs>
-                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
-                    <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6" />
-                </marker>
-            </defs>
-        </svg>
-    );
-  };
+  // A função de renderGanttLines foi movida para dentro do render para ter acesso ao escopo minStartOffset
 
   return (
     <div className="h-full flex flex-col animate-in fade-in relative overflow-hidden bg-[#0B1121] text-slate-200 font-['Urbanist',_sans-serif]">
@@ -637,69 +530,167 @@ export default function Cronograma({ proj, onRefresh }: any) {
 
                 {/* GRÁFICO GANTT (DIREITA) */}
                 {isGanttVisible && (
-                    <div className="flex-1 overflow-auto bg-[#0f172a] relative transition-all duration-75" style={{ scrollBehavior: 'smooth' }}>
-                        <div className="sticky top-0 z-30 bg-[#0f172a] shadow-md border-b border-slate-800 flex flex-col w-max">
+                    <div className="flex-1 overflow-auto bg-[#0B1121] relative transition-all duration-75">
+                        <div className="sticky top-0 z-20 bg-[#0f172a] border-b border-slate-800 flex flex-col shadow-xl">
                             {/* Linha dos Meses */}
-                            <div className="flex h-5 items-center">
-                                {ganttMonths.map((m, i) => (
-                                    <div key={i} className="flex items-center justify-center border-r border-slate-800/50 bg-[#162032] text-[9px] font-black uppercase text-slate-400 tracking-widest h-full" style={{ width: `${m.days * 15}px` }}>
-                                        {m.label}
+                            <div className="flex h-7 bg-[#162032]">
+                                {Array.from({ length: 300 }).reduce((acc: any[], _, i) => {
+                                    const scale = 20;
+                                    const starts = visibleTarefas.map((t: any) => Number(t.start) || 0);
+                                    const minStartOffset = starts.length > 0 ? Math.max(0, Math.min(...starts) - 2) : 0;
+                                    const date = dynamicBaseDate && !isNaN(dynamicBaseDate.getTime()) ? new Date(dynamicBaseDate.getTime() + (minStartOffset + i) * 24 * 60 * 60 * 1000) : new Date();
+                                    const monthYear = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                                    
+                                    const lastGroup = acc[acc.length - 1];
+                                    if (lastGroup && lastGroup.label === monthYear) {
+                                        lastGroup.width += scale;
+                                    } else {
+                                        acc.push({ label: monthYear, width: scale });
+                                    }
+                                    return acc;
+                                }, []).map((group, i) => (
+                                    <div key={i} className="border-r border-slate-800/50 flex items-center px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest" style={{ width: `${group.width}px` }}>
+                                        {group.label}
                                     </div>
                                 ))}
                             </div>
                             {/* Linha dos Dias */}
-                            <div className="flex h-5">
-                                {ganttDays.map((date, i) => {
-                                    const isMonday = date.getDay() === 1;
+                            <div className="flex h-7 bg-[#0f172a]">
+                                {Array.from({ length: 300 }).map((_, i) => {
+                                    const scale = 20;
+                                    const starts = visibleTarefas.map((t: any) => Number(t.start) || 0);
+                                    const minStartOffset = starts.length > 0 ? Math.max(0, Math.min(...starts) - 2) : 0;
+                                    const date = dynamicBaseDate && !isNaN(dynamicBaseDate.getTime()) ? new Date(dynamicBaseDate.getTime() + (minStartOffset + i) * 24 * 60 * 60 * 1000) : new Date();
                                     const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                                    const isToday = date.toDateString() === new Date().toDateString();
+                                    
                                     return (
-                                        <div key={i} className={`flex-shrink-0 border-r border-slate-800/20 h-full flex items-center justify-center ${isMonday ? 'bg-blue-900/20 text-blue-400 font-bold' : isWeekend ? 'bg-slate-800/20 text-slate-600' : 'text-slate-500'}`} style={{ width: '15px' }}>
-                                            {isMonday ? <span className="text-[8px]">{date.getDate()}</span> : ''}
+                                        <div key={i} className={`flex-shrink-0 border-r border-slate-800/30 h-full flex items-center justify-center text-[9px] font-bold ${isToday ? 'bg-blue-600 text-white' : isWeekend ? 'bg-slate-900/40 text-slate-600' : 'text-slate-400'}`} style={{ width: `${scale}px` }}>
+                                            {date.getDate()}
                                         </div>
                                     );
                                 })}
                             </div>
                         </div>
-                        <div className="relative min-w-[3000px] w-max">
-                            {/* Background Weekend Grid */}
-                            <div className="absolute inset-0 flex pointer-events-none z-0">
-                                {ganttDays.map((date, i) => {
-                                    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                        <div className="relative min-w-[6000px]">
+                            {/* Marcador de Hoje (Linha Vertical) */}
+                            {(() => {
+                                const starts = visibleTarefas.map((t: any) => Number(t.start) || 0);
+                                const minStartOffset = starts.length > 0 ? Math.max(0, Math.min(...starts) - 2) : 0;
+                                const scale = 20;
+                                const baseTime = dynamicBaseDate?.getTime() || Date.now();
+                                const todayTime = new Date().setHours(0,0,0,0);
+                                const offsetDays = Math.floor((todayTime - baseTime) / (1000 * 60 * 60 * 24));
+                                
+                                if (offsetDays >= minStartOffset && offsetDays < minStartOffset + 300) {
+                                    const leftPos = (offsetDays - minStartOffset) * scale + (scale / 2);
                                     return (
-                                        <div key={i} className={`flex-shrink-0 border-r border-slate-800/10 h-full ${isWeekend ? 'bg-slate-800/10' : ''}`} style={{ width: '15px' }} />
+                                        <div className="absolute top-0 bottom-0 w-px bg-blue-500/50 z-0 pointer-events-none" style={{ left: `${leftPos}px` }}>
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full -ml-[3.5px] mt-1 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
+                                        </div>
                                     );
-                                })}
-                            </div>
+                                }
+                                return null;
+                            })()}
 
                             {visibleTarefas.map((t: any, idx: number) => {
-                                const scale = 15;
-                                const barLeft = (Number(t.start) - ganttOffsetDays) * scale;
-                                const barWidth = (Number(t.duration) || 0) * scale;
+                                const scale = 20;
+                                const starts = visibleTarefas.map((t: any) => Number(t.start) || 0);
+                                const minStartOffset = starts.length > 0 ? Math.max(0, Math.min(...starts) - 2) : 0;
+                                
+                                const barLeft = Math.max(0, (Number(t.start) || 0) - minStartOffset) * scale;
+                                const barWidth = Math.max(1, (Number(t.duration) || 0)) * scale;
                                 const isCritical = t.critico;
 
                                 return (
-                                    <div key={t.id} className="h-[40px] border-b border-slate-800/30 relative flex items-center group z-10">
+                                    <div key={t.id} className="h-[40px] border-b border-slate-800/30 relative flex items-center group">
+                                        {/* Fundo Zebrado */}
+                                        <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                        
                                         {/* Baseline Shadow */}
                                         {showBaseline && (
                                             <div 
-                                                className="absolute h-1 bg-blue-500/20 rounded-full bottom-1"
-                                                style={{ left: `${(t.baseStart - ganttOffsetDays) * scale}px`, width: `${t.baseDur * scale}px` }}
+                                                className="absolute h-1 bg-blue-500/30 rounded-full bottom-[6px] border border-blue-500/20"
+                                                style={{ left: `${Math.max(0, (Number(t.baseStart) || 0) - minStartOffset) * scale}px`, width: `${Math.max(1, (Number(t.baseDur) || 0)) * scale}px` }}
                                             />
                                         )}
                                         {/* Active Bar (Planned/Current) */}
                                         <div 
-                                            className={`absolute h-4 rounded-sm shadow-lg transition-all duration-300 group-hover:scale-y-110 ${t.isSummary ? 'bg-slate-600' : (isCritical ? 'bg-red-600 shadow-red-500/20' : 'bg-blue-600 shadow-blue-500/20')} ring-1 ring-white/10`}
-                                            style={{ left: `${barLeft}px`, width: `${Math.max(barWidth, 4)}px` }}
+                                            className={`absolute h-5 rounded-md shadow-lg transition-all duration-300 group-hover:scale-y-110 flex items-center overflow-hidden z-10 ${t.isSummary ? 'bg-gradient-to-r from-slate-600 to-slate-700' : (isCritical ? 'bg-gradient-to-r from-red-600 to-red-500 shadow-red-500/20' : 'bg-gradient-to-r from-blue-600 to-blue-500 shadow-blue-500/20')} ring-1 ${t.isSummary ? 'ring-slate-500' : 'ring-white/20'}`}
+                                            style={{ left: `${barLeft}px`, width: `${Math.max(barWidth, scale)}px` }}
                                         >
                                             {/* Actual Progress Overlay */}
-                                            <div className="h-full bg-emerald-400/60 transition-all rounded-l-sm" style={{ width: `${t.progress}%` }}>
-                                                {t.progress >= 100 && <div className="h-full w-full bg-emerald-500 flex items-center justify-end px-1"><CheckCircle2 size={8} className="text-white"/></div>}
+                                            <div className="h-full bg-emerald-400/80 transition-all border-r border-white/20" style={{ width: `${t.progress}%` }}>
+                                                {t.progress >= 100 && <div className="h-full w-full bg-emerald-500 flex items-center justify-end px-1"><CheckCircle2 size={10} className="text-white"/></div>}
                                             </div>
+                                            {t.progress < 100 && barWidth > 40 && <span className="absolute right-2 text-[8px] font-black text-white/70">{t.progress}%</span>}
                                         </div>
                                     </div>
                                 );
                             })}
-                            {renderGanttLines()}
+                            
+                            {/* Lógica de Renderização de Linhas (Atualizada para usar o minStartOffset) */}
+                            <svg className="absolute inset-0 pointer-events-none w-full h-full opacity-60 z-0">
+                                {visibleTarefas.map((t: any, idx: number) => {
+                                    if (!t.predecessors) return null;
+                                    const preds = t.predecessors.split(/[,;]/);
+                                    
+                                    const starts = visibleTarefas.map((x: any) => Number(x.start) || 0);
+                                    const minStartOffset = starts.length > 0 ? Math.max(0, Math.min(...starts) - 2) : 0;
+                                    const scale = 20;
+                                    const rowHeight = 40; 
+                                    
+                                    return preds.map((pStr: any) => {
+                                        const pMatchRaw = pStr.trim();
+                                        if (!pMatchRaw) return null;
+                                        const pMatch = pMatchRaw.replace(/[A-Za-z+-\s].*$/, '');
+                                        const pIdx = visibleTarefas.findIndex(x => x.wbs === pMatch || x.id.toString() === pMatch);
+                                        if (pIdx === -1) return null;
+                                        
+                                        const parent = visibleTarefas[pIdx];
+                                        
+                                        const isSS = /SS/i.test(pMatchRaw);
+                                        const isFF = /FF/i.test(pMatchRaw);
+                                        const isSF = /SF/i.test(pMatchRaw);
+                                        
+                                        const pStart = Math.max(0, (parent.start || 0) - minStartOffset) * scale;
+                                        const pEnd = Math.max(0, ((parent.start || 0) + (parent.duration || 0)) - minStartOffset) * scale;
+                                        const tStart = Math.max(0, (t.start || 0) - minStartOffset) * scale;
+                                        const tEnd = Math.max(0, ((t.start || 0) + (t.duration || 0)) - minStartOffset) * scale;
+                                        
+                                        const y1 = pIdx * rowHeight + rowHeight / 2;
+                                        const y2 = idx * rowHeight + rowHeight / 2;
+                                        
+                                        let pathD = "";
+                                        if (isSS) {
+                                            pathD = `M ${pStart} ${y1} L ${pStart - 10} ${y1} L ${pStart - 10} ${y2} L ${tStart} ${y2}`;
+                                        } else if (isFF) {
+                                            pathD = `M ${pEnd} ${y1} L ${pEnd + 10} ${y1} L ${pEnd + 10} ${y2} L ${tEnd} ${y2}`;
+                                        } else if (isSF) {
+                                            pathD = `M ${pStart} ${y1} L ${pStart - 10} ${y1} L ${pStart - 10} ${y2} L ${tEnd} ${y2}`;
+                                        } else {
+                                            // FS (Default)
+                                            pathD = `M ${pEnd} ${y1} L ${pEnd + 10} ${y1} L ${pEnd + 10} ${y2} L ${tStart} ${y2}`;
+                                        }
+                                        
+                                        return (
+                                            <path 
+                                                key={`${t.id}-${pMatch}`} 
+                                                d={pathD} 
+                                                fill="none" 
+                                                stroke="#3b82f6" 
+                                                strokeWidth="1.5"
+                                                markerEnd="url(#arrowhead)"
+                                            />
+                                        );
+                                    });
+                                })}
+                                <defs>
+                                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                                        <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6" />
+                                    </marker>
+                                </defs>
+                            </svg>
                         </div>
                     </div>
                 )}
