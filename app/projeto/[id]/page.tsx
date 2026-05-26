@@ -63,8 +63,9 @@ export default function ProjectPage() {
                 setProj(data);
                 setConfig({...initialConfig, obraNome: data.nome});
                 
+                let formattedFeed: any[] = [];
                 if (data.feedPosts) {
-                    const formattedFeed = data.feedPosts.map((p: any) => ({
+                    formattedFeed = data.feedPosts.map((p: any) => ({
                         id: `feed-${p.id}`,
                         author: p.author,
                         role: p.role,
@@ -77,42 +78,37 @@ export default function ProjectPage() {
                         comments: p.comments,
                         createdAt: p.createdAt
                     }));
-                    
-                    const rdoPhotos: any[] = [];
-                    if (data.rdos && Array.isArray(data.rdos)) {
-                        data.rdos.forEach((rdo: any) => {
-                            try {
-                                const issues = JSON.parse(rdo.issues || '{}');
-                                if (issues.activities && Array.isArray(issues.activities)) {
-                                    issues.activities.forEach((act: any) => {
-                                        if (act.photos && Array.isArray(act.photos)) {
-                                            act.photos.forEach((photo: any) => {
-                                                rdoPhotos.push({
-                                                    id: `rdo-${photo.id || Math.random()}`,
-                                                    author: "RDO Digital",
-                                                    role: "Sistema",
-                                                    time: new Date(rdo.date || rdo.createdAt).toLocaleDateString('pt-BR'),
-                                                    location: data.nome,
-                                                    desc: photo.caption || act.observations || `Foto do RDO #${rdo.id}`,
-                                                    image: photo.url,
-                                                    tags: ["RDO"],
-                                                    likes: 0,
-                                                    comments: 0,
-                                                    createdAt: new Date(rdo.date || rdo.createdAt).toISOString()
-                                                });
-                                            });
-                                        }
+                }
+                
+                const rdoPhotos: any[] = [];
+                if (data.rdos && Array.isArray(data.rdos)) {
+                    data.rdos.forEach((rdo: any) => {
+                        if (rdo.activities && Array.isArray(rdo.activities)) {
+                            rdo.activities.forEach((act: any) => {
+                                if (act.photos && Array.isArray(act.photos)) {
+                                    act.photos.forEach((photo: any) => {
+                                        rdoPhotos.push({
+                                            id: `rdo-${photo.id || Math.random()}`,
+                                            author: "RDO Digital",
+                                            role: "Sistema",
+                                            time: rdo.data || new Date().toLocaleDateString('pt-BR'),
+                                            location: data.nome,
+                                            desc: photo.caption || act.observations || `Foto do RDO #${rdo.id}`,
+                                            image: photo.url,
+                                            tags: ["RDO"],
+                                            likes: 0,
+                                            comments: 0,
+                                            createdAt: rdo.data ? new Date(rdo.data.split('/').reverse().join('-')).toISOString() : new Date().toISOString()
+                                        });
                                     });
                                 }
-                            } catch (e) {}
-                        });
-                    }
-                    
-                    const allPosts = [...formattedFeed, ...rdoPhotos].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-                    setLocalPosts(allPosts);
-                } else {
-                    setLocalPosts([]);
+                            });
+                        }
+                    });
                 }
+                
+                const allPosts = [...formattedFeed, ...rdoPhotos].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                setLocalPosts(allPosts);
             } else {
                 alert("Obra não encontrada.");
                 router.push('/');
