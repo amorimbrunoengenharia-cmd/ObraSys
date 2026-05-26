@@ -311,7 +311,7 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
 
     const handleDeleteBM = async (id: number) => {
         if (!confirm("Tem certeza que deseja excluir esta medição? Isso é irreversível e excluirá o histórico.")) return;
-        setIsSubmitting(true);
+        setIsSaving(true);
         try {
             const res = await deleteMeasurement(id);
             if (res.success) {
@@ -323,7 +323,7 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
         } catch (e: any) {
             alert("Erro: " + e.message);
         } finally {
-            setIsSubmitting(false);
+            setIsSaving(false);
         }
     };
 
