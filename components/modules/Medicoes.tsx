@@ -666,7 +666,14 @@ export default function Medicoes({ proj, onRefresh, onApprove, showToast }: any)
                             {formatter.format(medicoes.filter((m:any)=>m.status==='Aprovado'||m.status==='Pago').reduce((acc:number, m:any)=>acc+m.bruto,0))}
                         </p>
                         <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-4 overflow-hidden">
-                            <div className="bg-emerald-500 h-full" style={{width: '45%'}}></div>
+                            {(() => {
+                                const totalContratado = contratos.reduce((acc:number, c:any) => acc + (c.valorInicial + (c.additives?.reduce((a:number,ad:any)=>a+ad.valor,0)||0)), 0);
+                                const totalMed = medicoes.filter((m:any)=>m.status==='Aprovado'||m.status==='Pago').reduce((acc:number, m:any)=>acc+m.bruto,0);
+                                const pct = totalContratado > 0 ? (totalMed / totalContratado) * 100 : 0;
+                                return (
+                                    <div className="bg-emerald-500 h-full transition-all duration-1000" style={{width: `${Math.min(pct, 100)}%`}}></div>
+                                );
+                            })()}
                         </div>
                     </div>
                     <div className="bg-white dark:bg-[#162032] p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
