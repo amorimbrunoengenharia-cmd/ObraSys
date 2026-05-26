@@ -32,25 +32,37 @@ export async function GET(req: NextRequest) {
         // Identificar o tipo de recurso
         const resourceType = urlParam.includes('/raw/') ? 'raw' : 'image';
         
-        // Gerar URL autenticada que permite baixar o PDF bloqueado
+        // Gerar URL autenticada que permite acessar o PDF
         const signedUrl = cloudinary.utils.url(publicIdWithExt, {
           sign_url: true,
           secure: true,
-          resource_type: resourceType,
-          flags: 'attachment' // Força o download
+          resource_type: resourceType
         });
         
-        // Redireciona o navegador para o link seguro do Cloudinary
-        return NextResponse.redirect(signedUrl);
+        // Proxy o download através do nosso servidor para evitar problemas de CDN/Headers do Cloudinary
+        const cloudinaryRes = await fetch(signedUrl);
+        
+        if (!cloudinaryRes.ok) {
+           console.error('Cloudinary response not ok:', cloudinaryRes.status);
+           return NextResponse.redirect(urlParam); // fallback
+        }
+        
+        const buffer = await cloudinaryRes.arrayBuffer();
+        
+        return new NextResponse(buffer, {
+           headers: {
+              'Content-Type': 'application/pdf',
+              'Content-Disposition': `attachment; filename="contrato_${publicIdWithExt.split('/').pop() || 'documento.pdf'}"`
+           }
+        });
       }
     }
     
-    // Se não for do Cloudinary, apenas redireciona normalmente
+    // Se não for do Cloudinary, redireciona normalmente
     return NextResponse.redirect(urlParam);
     
   } catch (error) {
     console.error('Error generating secure download URL:', error);
-    // Fallback: redireciona para a URL original em caso de erro no parser
     return NextResponse.redirect(urlParam);
   }
 }
