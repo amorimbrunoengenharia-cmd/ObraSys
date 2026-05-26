@@ -35,6 +35,37 @@ export async function respondToApproval(projectId: number, approvalId: number, s
             include: { project: true }
         });
 
+        // Generate financial record if approved and has an amount
+        if (status === 'Aprovado' && updatedApproval.amount && updatedApproval.amount > 0 && 
+            (updatedApproval.type.includes('Medição') || updatedApproval.type.includes('BM'))) {
+            
+            const existingFinance = await prisma.financialRecord.findFirst({
+                where: { 
+                    descricao: `Faturamento: ${updatedApproval.title}`,
+                    projectId: projectId
+                }
+            });
+
+            if (!existingFinance) {
+                await prisma.financialRecord.create({
+                    data: {
+                        projectId: projectId,
+                        descricao: `Faturamento: ${updatedApproval.title}`,
+                        tipo: "ENTRADA",
+                        classificacaoDRE: "1. RECEITA OPERACIONAL",
+                        centroCusto: updatedApproval.project.name,
+                        clienteFornecedor: updatedApproval.project.clientName || clientName || "CLIENTE",
+                        valorBruto: updatedApproval.amount,
+                        impostosRetidos: 0,
+                        valorLiquido: updatedApproval.amount,
+                        status: "A VENCER",
+                        dataCompetencia: new Date(),
+                        dataVencimento: new Date(new Date().setDate(new Date().getDate() + 15)), // Vencimento em 15 dias
+                    }
+                });
+            }
+        }
+
         // Notificar equipe de engenharia e admin
         const targetUsers = await prisma.user.findMany({
             where: {

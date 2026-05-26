@@ -8,6 +8,7 @@ export default function ApprovalsInternal({ proj }: any) {
     const [approvals, setApprovals] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [form, setForm] = useState({
         title: '',
@@ -30,6 +31,7 @@ export default function ApprovalsInternal({ proj }: any) {
     const handleSend = async () => {
         if (!form.title) return alert("Título é obrigatório");
         
+        setIsSubmitting(true);
         const res = await createApproval(proj.id, {
             ...form,
             amount: form.amount ? parseFloat(form.amount) : null
@@ -40,7 +42,10 @@ export default function ApprovalsInternal({ proj }: any) {
             setForm({ title: '', type: 'Medição (BM)', amount: '', documentUrl: '' });
             loadData();
             alert("Solicitação enviada ao cliente!");
+        } else {
+            alert("Erro ao enviar: " + res.error);
         }
+        setIsSubmitting(false);
     };
 
     return (
@@ -162,8 +167,8 @@ export default function ApprovalsInternal({ proj }: any) {
                             />
                         </div>
 
-                        <button onClick={handleSend} className="w-full py-4 bg-blue-600 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-xl shadow-blue-500/20 transition-all">
-                            Enviar para o Portal do Cliente
+                        <button onClick={handleSend} disabled={isSubmitting} className="w-full py-4 bg-blue-600 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-xl shadow-blue-500/20 transition-all disabled:opacity-50">
+                            {isSubmitting ? "Enviando..." : "Enviar para o Portal do Cliente"}
                         </button>
                     </div>
                 </Modal>

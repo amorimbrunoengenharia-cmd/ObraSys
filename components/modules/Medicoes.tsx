@@ -51,9 +51,8 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
 
   React.useEffect(() => {
     async function loadSuppliers() {
-      const [sups, conts] = await Promise.all([getSuppliers(), getContacts()]);
-      const combined = [...sups, ...conts.map((c: any) => ({ ...c, id: `c-${c.id}` }))];
-      setAvailableSuppliers(combined.sort((a, b) => (a.name || "").localeCompare(b.name || "")));
+      const sups = await getSuppliers();
+      setAvailableSuppliers(sups);
     }
     loadSuppliers();
   }, []);
@@ -352,9 +351,8 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
                             <div className="flex justify-between items-center">
                                 <label className="text-[10px] font-black text-slate-400 uppercase">Empresa / Fornecedor</label>
                                 <button onClick={async () => {
-                                    const [sups, conts] = await Promise.all([getSuppliers(), getContacts()]);
-                                    const combined = [...sups, ...conts.map((c: any) => ({ ...c, id: `c-${c.id}` }))];
-                                    setAvailableSuppliers(combined.sort((a, b) => (a.name || "").localeCompare(b.name || "")));
+                                    const sups = await getSuppliers();
+                                    setAvailableSuppliers(sups);
                                 }} className="text-[9px] font-bold text-blue-500 hover:underline flex items-center gap-1">
                                     <RefreshCw size={10}/> Atualizar Lista
                                 </button>
