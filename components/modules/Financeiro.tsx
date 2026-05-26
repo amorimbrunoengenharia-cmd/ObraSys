@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useMemo, useEffect } from 'react';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 import { Wallet, ArrowUpRight, ArrowDownRight, AlertCircle, TrendingDown, BookOpen, RefreshCw, Trash2, Edit3, Search, Plus, Upload, Save, Filter, ShoppingCart, Truck, CheckCircle } from 'lucide-react';
 import { exportFinanceiroToObsidian } from '../../app/actions/obsidian';
 import { 
@@ -130,24 +130,31 @@ export default function Financeiro({ proj }: any) {
 
   // Fluxo Mensal
   const fluxoMensal = useMemo(() => {
-    const map: Record<string, { m: string; e: number; s: number }> = {};
+    const map: Record<string, { m: string; key: string; e: number; s: number }> = {};
     for (const f of financials) {
       const d = f.dataVencimento || f.dataCompetencia || f.createdAt;
       if (!d) continue;
-      const date = new Date(d);
-      const key = date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
-      if (!map[key]) map[key] = { m: key, e: 0, s: 0 };
+      
+      // Criar data baseada no fuso horário local para não haver deslocamento de dia/mês
+      const dateParts = d.split('-');
+      let date = new Date(d);
+      if (dateParts.length === 3) {
+          date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2].split('T')[0]));
+      }
+      
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (!map[key]) {
+          map[key] = { 
+              key, 
+              m: date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace(' de ', '/').replace('.', '').toUpperCase(), 
+              e: 0, 
+              s: 0 
+          };
+      }
       if (f.tipo === 'ENTRADA') map[key].e += (f.valorBruto || 0);
       else map[key].s += (f.valorLiquido || 0);
     }
-    return Object.values(map).sort((a: any, b: any) => {
-        const parseMonth = (m: string) => {
-            const [mes, ano] = m.split('/');
-            const meses: any = { 'jan': 0, 'fev': 1, 'mar': 2, 'abr': 3, 'mai': 4, 'jun': 5, 'jul': 6, 'ago': 7, 'set': 8, 'out': 9, 'nov': 10, 'dez': 11 };
-            return new Date(2000 + parseInt(ano), meses[mes.toLowerCase()]);
-        };
-        return parseMonth(a.m).getTime() - parseMonth(b.m).getTime();
-    }).slice(-6);
+    return Object.values(map).sort((a: any, b: any) => a.key.localeCompare(b.key)).slice(-6);
   }, [financials]);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -230,14 +237,20 @@ export default function Financeiro({ proj }: any) {
               <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest mb-8 flex items-center gap-3">
                 <TrendingDown className="text-slate-400" size={20}/> Tendência de Fluxo Mensal
               </h3>
-              <div className="h-72">
+              <div className="h-80 mt-4">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={fluxoMensal}>
-                      <XAxis dataKey="m" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                      <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} tickFormatter={v => `R$${(v/1000).toFixed(0)}k`}/>
-                      <Tooltip formatter={(v: any) => formatter.format(v)} contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '16px', color: '#fff', padding: '12px' }}/>
-                      <Bar dataKey="e" name="Entradas" fill="#10b981" radius={[8,8,0,0]} barSize={25} />
-                      <Bar dataKey="s" name="Saídas" fill="#ef4444" radius={[8,8,0,0]} barSize={25} />
+                    <BarChart data={fluxoMensal} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
+                      <XAxis dataKey="m" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} dy={10} fontWeight={800} />
+                      <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} tickFormatter={v => `R$${(v/1000).toFixed(0)}k`}/>
+                      <Tooltip 
+                          formatter={(v: any) => formatter.format(v)} 
+                          contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '16px', color: '#fff', padding: '16px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.5)' }}
+                          cursor={{fill: '#334155', opacity: 0.1}}
+                      />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', paddingTop: '20px' }} />
+                      <Bar dataKey="e" name="Entradas (R$)" fill="#10b981" radius={[6,6,0,0]} barSize={32} />
+                      <Bar dataKey="s" name="Saídas (R$)" fill="#ef4444" radius={[6,6,0,0]} barSize={32} />
                     </BarChart>
                   </ResponsiveContainer>
               </div>
