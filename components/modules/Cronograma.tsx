@@ -71,6 +71,16 @@ export default function Cronograma({ proj, onRefresh }: any) {
   // DADOS REAIS DO PROJETO
   const rawTarefas = useMemo(() => proj?.tasks || [], [proj]);
 
+  const dynamicBaseDate = useMemo(() => {
+      let bDate = proj?.startDate ? new Date(proj.startDate) : (proj?.osDate ? new Date(proj.osDate) : null);
+      if (bDate && !isNaN(bDate.getTime())) return bDate;
+      
+      const validDates = rawTarefas.filter((t:any) => t.actualStart).map((t:any) => new Date(t.actualStart).getTime());
+      if (validDates.length > 0) return new Date(Math.min(...validDates));
+      
+      return new Date(proj?.createdAt || Date.now());
+  }, [proj, rawTarefas]);
+
   // --- LÓGICA DE WBS DINÂMICA ---
   const tarefas = useMemo(() => {
     let sorted = [...rawTarefas].sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -91,6 +101,16 @@ export default function Cronograma({ proj, onRefresh }: any) {
       
       let start = t.start;
       let duration = t.duration;
+      
+      if (!start && !duration && t.actualStart && t.actualFinish) {
+          const d1 = new Date(t.actualStart);
+          const d2 = new Date(t.actualFinish);
+          duration = Math.max(0, Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)));
+          
+          if (dynamicBaseDate && !isNaN(dynamicBaseDate.getTime())) {
+              start = Math.max(0, Math.round((d1.getTime() - dynamicBaseDate.getTime()) / (1000 * 60 * 60 * 24)));
+          }
+      }
       
       if (t.isSummary) {
         const nextSameLevelIndex = sorted.findIndex((c, i) => i > index && (c.level || 0) <= level);
@@ -261,7 +281,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
     
     let updates: any = { [field]: value };
     
-    const baseDate = proj?.startDate ? new Date(proj.startDate) : (proj?.osDate ? new Date(proj.osDate) : new Date(proj?.createdAt));
+    const baseDate = dynamicBaseDate;
     
     if (baseDate && !isNaN(baseDate.getTime())) {
         const startMs = baseDate.getTime() + (newStartRel * 24 * 60 * 60 * 1000);
@@ -289,12 +309,12 @@ export default function Cronograma({ proj, onRefresh }: any) {
     }
 
     if (newStart) {
-        const baseDate = proj?.startDate ? new Date(proj.startDate) : (proj?.osDate ? new Date(proj.osDate) : new Date(proj?.createdAt));
+        const baseDate = dynamicBaseDate;
         if (baseDate && !isNaN(baseDate.getTime())) {
             const tStart = new Date(newStart);
             const diffTime = tStart.getTime() - baseDate.getTime();
             const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-            if (!isNaN(diffDays)) updates.start = diffDays;
+            if (!isNaN(diffDays)) updates.start = Math.max(0, diffDays);
         }
     }
 
