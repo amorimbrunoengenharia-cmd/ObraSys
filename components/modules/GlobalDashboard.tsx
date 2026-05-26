@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../AuthContext';
 import { canAccessPage } from '../../lib/permissions';
-import { ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, AreaChart, Area, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, AreaChart, Area, LineChart, Line, PieChart, Pie, Cell, ComposedChart, Bar, Legend } from 'recharts';
 import { reviewPurchaseRequest } from '../../app/actions/supply';
 import NotificationBell from '../NotificationBell';
 
@@ -393,13 +393,17 @@ export default function GlobalDashboard({ initialKpis, initialObras, initialChar
                         <h3 className="font-bold text-sm uppercase text-slate-500 mb-6 flex items-center gap-2"><Target size={16}/> Eficiência Operacional</h3>
                         <div className="h-64">
                             <ResponsiveContainer width="100%" height="100%" minHeight={300}>
-                                <LineChart data={eficiencia_por_mes}>
+                                <ComposedChart data={eficiencia_por_mes}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155"/>
                                     <XAxis dataKey="mes" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false}/>
-                                    <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false}/>
-                                    <Tooltip contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '8px', color: '#fff'}}/>
-                                    <Line type="monotone" dataKey="eficiencia" stroke="#8b5cf6" strokeWidth={3} dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }} />
-                                </LineChart>
+                                    <YAxis yAxisId="left" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                                    <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} tickFormatter={(val) => `${val}%`} />
+                                    <Tooltip contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '8px', color: '#fff'}} cursor={{fill: '#334155', opacity: 0.2}} />
+                                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                                    <Bar yAxisId="left" dataKey="tarefas" name="Tarefas Previstas" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} />
+                                    <Bar yAxisId="left" dataKey="concluidas" name="Tarefas Concluídas" fill="#10b981" radius={[4, 4, 0, 0]} barSize={12} />
+                                    <Line yAxisId="right" type="linear" dataKey="eficiencia" name="Eficiência (%)" stroke="#8b5cf6" strokeWidth={3} dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }} connectNulls={true} />
+                                </ComposedChart>
                             </ResponsiveContainer>
                         </div>
                     </div>

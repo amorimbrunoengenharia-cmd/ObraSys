@@ -248,7 +248,7 @@ export default async function Home() {
         });
         
         if (dueThisMonth.length === 0) {
-            eficienciaData.push({ mes: label, eficiencia: 100, tarefas: 0 });
+            eficienciaData.push({ mes: label, eficiencia: null, tarefas: 0, concluidas: 0 });
         } else {
             const completedOnTime = dueThisMonth.filter(t => 
                 t.status === 'Concluído' || t.columnId === 'done'
@@ -256,7 +256,8 @@ export default async function Home() {
             eficienciaData.push({ 
                 mes: label, 
                 eficiencia: Math.round((completedOnTime / dueThisMonth.length) * 100),
-                tarefas: dueThisMonth.length
+                tarefas: dueThisMonth.length,
+                concluidas: completedOnTime
             });
         }
     }
