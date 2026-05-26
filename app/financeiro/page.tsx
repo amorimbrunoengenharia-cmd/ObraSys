@@ -276,11 +276,13 @@ export default function FinanceiroPage() {
 
     // KPIs calculados
     const kpis = useMemo(() => {
-        const entradas = records.filter(r => r.tipo === 'ENTRADA' && r.status === 'Recebido').reduce((acc, r) => acc + r.valorLiquido, 0);
-        const saidas = records.filter(r => r.tipo === 'SAÍDA' && r.status === 'Pago').reduce((acc, r) => acc + r.valorLiquido, 0);
-        const pendentes = records.filter(r => (r.status === 'A Vencer' || r.status === 'Pendente') && r.tipo === 'SAÍDA').reduce((acc, r) => acc + r.valorLiquido, 0);
-        const atrasados = records.filter(r => r.status === 'Atrasado').length;
-        return { entradas, saidas, saldo: entradas - saidas, pendentes, atrasados };
+        const recebidos = records.filter(r => r.tipo === 'ENTRADA' && r.status === 'Recebido').reduce((acc, r) => acc + (r.valorLiquido || 0), 0);
+        const pagos = records.filter(r => r.tipo === 'SAÍDA' && r.status === 'Pago').reduce((acc, r) => acc + (r.valorLiquido || 0), 0);
+        
+        const aReceber = records.filter(r => r.tipo === 'ENTRADA' && r.status !== 'Recebido' && r.status !== 'Cancelado').reduce((acc, r) => acc + (r.valorLiquido || 0), 0);
+        const aPagar = records.filter(r => r.tipo === 'SAÍDA' && r.status !== 'Pago' && r.status !== 'Cancelado').reduce((acc, r) => acc + (r.valorLiquido || 0), 0);
+
+        return { recebidos, pagos, saldo: recebidos - pagos, aReceber, aPagar };
     }, [records]);
 
     const filteredRecords = records.filter(r => 
@@ -642,22 +644,26 @@ export default function FinanceiroPage() {
             <main className="p-8 max-w-[1600px] mx-auto space-y-6">
                 
                 {/* KPIs */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-white dark:bg-[#162032] p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Entradas Totais</p>
-                        <p className="text-2xl font-black text-emerald-500">{formatter.format(kpis.entradas)}</p>
-                    </div>
-                    <div className="bg-white dark:bg-[#162032] p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Saídas Totais</p>
-                        <p className="text-2xl font-black text-red-500">{formatter.format(kpis.saidas)}</p>
-                    </div>
-                    <div className="bg-white dark:bg-[#162032] p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="bg-white dark:bg-[#162032] p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm border-l-4 border-l-blue-500">
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Saldo em Caixa</p>
                         <p className={`text-2xl font-black ${kpis.saldo >= 0 ? 'text-blue-500' : 'text-orange-500'}`}>{formatter.format(kpis.saldo)}</p>
                     </div>
-                    <div className="bg-white dark:bg-[#162032] p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm border-l-4 border-l-yellow-400">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Contas a Vencer</p>
-                        <p className="text-2xl font-black text-slate-800 dark:text-white">{formatter.format(kpis.pendentes)}</p>
+                    <div className="bg-white dark:bg-[#162032] p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Recebimentos</p>
+                        <p className="text-2xl font-black text-emerald-500">{formatter.format(kpis.recebidos)}</p>
+                    </div>
+                    <div className="bg-white dark:bg-[#162032] p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Pagamentos</p>
+                        <p className="text-2xl font-black text-red-500">{formatter.format(kpis.pagos)}</p>
+                    </div>
+                    <div className="bg-white dark:bg-[#162032] p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm border-l-4 border-l-emerald-400">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">A Receber</p>
+                        <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{formatter.format(kpis.aReceber)}</p>
+                    </div>
+                    <div className="bg-white dark:bg-[#162032] p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm border-l-4 border-l-red-400">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">A Pagar</p>
+                        <p className="text-2xl font-black text-red-600 dark:text-red-400">{formatter.format(kpis.aPagar)}</p>
                     </div>
                 </div>
 
