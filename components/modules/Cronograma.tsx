@@ -342,7 +342,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
 
   // --- RENDERIZADOR DE LINHAS DE CONEXÃO (GANTT) ---
   const renderGanttLines = () => {
-    const scale = 2.5; 
+    const scale = 15; 
     const rowHeight = 32; 
     
     return (
@@ -352,8 +352,9 @@ export default function Cronograma({ proj, onRefresh }: any) {
                 const preds = t.predecessors.split(/[,;]/);
                 
                 return preds.map((pStr: any) => {
-                    const pMatch = pStr.trim();
-                    if (!pMatch) return null;
+                    const pMatchRaw = pStr.trim();
+                    if (!pMatchRaw) return null;
+                    const pMatch = pMatchRaw.replace(/[A-Za-z+-\s].*$/, '');
                     const pIdx = visibleTarefas.findIndex(x => x.wbs === pMatch || x.id.toString() === pMatch);
                     if (pIdx === -1) return null;
                     
@@ -574,13 +575,20 @@ export default function Cronograma({ proj, onRefresh }: any) {
                 {isGanttVisible && (
                     <div className="flex-1 overflow-auto bg-[#0f172a] relative transition-all duration-75">
                         <div className="sticky top-0 z-10 bg-[#111827] border-b border-slate-800 h-10 flex">
-                            {Array.from({ length: 100 }).map((_, i) => (
-                                <div key={i} className="w-[10px] flex-shrink-0 border-r border-slate-800/20 h-full flex items-center justify-center text-[7px] text-slate-700 font-bold">{i % 5 === 0 ? i : ''}</div>
-                            ))}
+                            {Array.from({ length: 200 }).map((_, i) => {
+                                const scale = 15;
+                                const date = dynamicBaseDate && !isNaN(dynamicBaseDate.getTime()) ? new Date(dynamicBaseDate.getTime() + i * 24 * 60 * 60 * 1000) : null;
+                                const isMonday = date?.getDay() === 1;
+                                return (
+                                    <div key={i} className={`flex-shrink-0 border-r border-slate-800/20 h-full flex flex-col items-center justify-center ${isMonday ? 'bg-slate-800/40 text-slate-400' : 'text-slate-600'}`} style={{ width: `${scale}px` }}>
+                                        {isMonday && <span className="text-[9px] font-bold" style={{writingMode: 'vertical-rl', transform: 'rotate(180deg)'}}>{date?.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>}
+                                    </div>
+                                );
+                            })}
                         </div>
-                        <div className="relative min-w-[1000px]">
+                        <div className="relative min-w-[3000px]">
                             {visibleTarefas.map((t: any, idx: number) => {
-                                const scale = 2.5;
+                                const scale = 15;
                                 const barLeft = (Number(t.start) || 0) * scale;
                                 const barWidth = (Number(t.duration) || 0) * scale;
                                 const isCritical = t.critico;
@@ -791,7 +799,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
                                                 : current.filter((a: any) => a.id !== u.id);
                                             setEditingTask({...editingTask, assignees: next, assigneeIds: next.map((a: any) => a.id)});
                                         }}
-                                        className="w-3 h-3 accent-blue-500"
+                                            className="w-3 h-3 accent-blue-500"
                                     />
                                     <span className="text-xs text-slate-300">{u.name}</span>
                                     <span className="text-[9px] text-slate-600 ml-auto">{u.role}</span>
@@ -811,7 +819,14 @@ export default function Cronograma({ proj, onRefresh }: any) {
                                 className="bg-transparent w-full text-sm outline-none text-white font-mono" 
                                 placeholder="Ex: 1; 2FS+2d"/>
                         </div>
-                        <p className="text-[9px] text-slate-500 mt-1">IDs separados por vírgula ou ponto e vírgula.</p>
+                        <p className="text-[9px] text-slate-500 mt-2 leading-relaxed">
+                            <strong>Legenda MS Project:</strong><br/>
+                            • <strong>1</strong> : Início após o fim da tarefa 1 (Padrão FS)<br/>
+                            • <strong>1FS+2d</strong> : Início 2 dias após o fim da tarefa 1<br/>
+                            • <strong>1SS</strong> : Início junto com o início da tarefa 1<br/>
+                            • <strong>1FF</strong> : Fim junto com o fim da tarefa 1<br/>
+                            <em className="text-slate-600">(Separe múltiplas por vírgula ou ponto e vírgula)</em>
+                        </p>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4">
