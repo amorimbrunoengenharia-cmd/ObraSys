@@ -212,6 +212,17 @@ export async function approveMeasurement(measurementId: number) {
         const tipo = isClient ? 'ENTRADA' : 'SAÍDA';
         const classificacao = isClient ? '1. RECEITA OPERACIONAL' : '3. CUSTO DIRETO - MÃO DE OBRA';
 
+        let projCity = project.city || '';
+        let projState = project.state || '';
+        
+        if (!projCity && project.address) {
+            try {
+                const addrData = JSON.parse(project.address);
+                if (addrData.city) projCity = addrData.city;
+                if (addrData.state) projState = addrData.state;
+            } catch (e) {}
+        }
+
         // Cria registro financeiro (DRE) automático COM rastreabilidade
         if (project.id) {
             // Verifica se já existe um FinancialRecord vinculado a esta medição (evita duplicatas)
@@ -237,8 +248,8 @@ export async function approveMeasurement(measurementId: number) {
                             dataCompetencia: new Date(),
                             dataVencimento: new Date(new Date().getTime() + 15 * 86400000),
                             centroCusto: project.name,
-                            cidade: project.city || '',
-                            estado: project.state || '',
+                            cidade: projCity,
+                            estado: projState,
                             setor: 'Comercial/Contrato',
                             projectId: project.id,
                             measurementId: Number(measurementId) // RASTREABILIDADE
