@@ -64,8 +64,8 @@ export default function ProjectPage() {
                 setConfig({...initialConfig, obraNome: data.nome});
                 
                 if (data.feedPosts) {
-                    const formatted = data.feedPosts.map((p: any) => ({
-                        id: p.id,
+                    const formattedFeed = data.feedPosts.map((p: any) => ({
+                        id: `feed-${p.id}`,
                         author: p.author,
                         role: p.role,
                         time: new Date(p.createdAt).toLocaleDateString('pt-BR'),
@@ -76,8 +76,42 @@ export default function ProjectPage() {
                         likes: p.likes,
                         comments: p.comments,
                         createdAt: p.createdAt
-                    })).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-                    setLocalPosts(formatted);
+                    }));
+                    
+                    const rdoPhotos: any[] = [];
+                    if (data.rdos && Array.isArray(data.rdos)) {
+                        data.rdos.forEach((rdo: any) => {
+                            try {
+                                const issues = JSON.parse(rdo.issues || '{}');
+                                if (issues.activities && Array.isArray(issues.activities)) {
+                                    issues.activities.forEach((act: any) => {
+                                        if (act.photos && Array.isArray(act.photos)) {
+                                            act.photos.forEach((photo: any) => {
+                                                rdoPhotos.push({
+                                                    id: `rdo-${photo.id || Math.random()}`,
+                                                    author: "RDO Digital",
+                                                    role: "Sistema",
+                                                    time: new Date(rdo.date || rdo.createdAt).toLocaleDateString('pt-BR'),
+                                                    location: data.nome,
+                                                    desc: photo.caption || act.observations || `Foto do RDO #${rdo.id}`,
+                                                    image: photo.url,
+                                                    tags: ["RDO"],
+                                                    likes: 0,
+                                                    comments: 0,
+                                                    createdAt: new Date(rdo.date || rdo.createdAt).toISOString()
+                                                });
+                                            });
+                                        }
+                                    });
+                                }
+                            } catch (e) {}
+                        });
+                    }
+                    
+                    const allPosts = [...formattedFeed, ...rdoPhotos].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                    setLocalPosts(allPosts);
+                } else {
+                    setLocalPosts([]);
                 }
             } else {
                 alert("Obra não encontrada.");
