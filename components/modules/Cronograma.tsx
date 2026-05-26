@@ -346,7 +346,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
     const rowHeight = 40; 
     
     return (
-        <svg className="absolute inset-0 pointer-events-none w-full h-full opacity-30">
+        <svg className="absolute inset-0 pointer-events-none w-full h-full opacity-60">
             {visibleTarefas.map((t: any, idx: number) => {
                 if (!t.predecessors) return null;
                 const preds = t.predecessors.split(/[,;]/);

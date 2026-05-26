@@ -90,105 +90,161 @@ export async function updateTaskDetails(taskId: number, data: any) {
 }
 
 export async function autoSchedule(triggerTaskId: number) {
-    const triggerTask = await prisma.task.findUnique({ where: { id: triggerTaskId } });
-    if (!triggerTask) return;
+    try {
+        const triggerTask = await prisma.task.findUnique({ where: { id: triggerTaskId } });
+        if (!triggerTask) return;
 
-    const allTasks = await prisma.task.findMany({ where: { projectId: triggerTask.projectId } });
-    
-    const taskMap = new Map<string, any>();
-    allTasks.forEach(t => {
-        taskMap.set(t.id.toString(), t);
-        if (t.wbs) taskMap.set(t.wbs.toString(), t);
-    });
-
-    const inDegree = new Map<number, number>();
-    const graph = new Map<number, number[]>(); 
-    const adj = new Map<number, any[]>(); 
-
-    allTasks.forEach(t => {
-        inDegree.set(t.id, 0);
-        graph.set(t.id, []);
-        adj.set(t.id, []);
-    });
-
-    allTasks.forEach(t => {
-        if (!t.predecessors) return;
-        const deps = t.predecessors.split(/[,;]/).map(d => d.trim()).filter(Boolean);
-        for (const depStr of deps) {
-            const parsed = parseDependency(depStr);
-            const parent = taskMap.get(parsed.key);
-            if (parent) {
-                graph.get(parent.id)!.push(t.id);
-                inDegree.set(t.id, inDegree.get(t.id)! + 1);
-                adj.get(t.id)!.push({ parentId: parent.id, type: parsed.type, lag: parsed.lag });
-            }
-        }
-    });
-
-    const queue: number[] = [];
-    allTasks.forEach(t => {
-        if (inDegree.get(t.id) === 0) queue.push(t.id);
-    });
-
-    const sortedIds: number[] = [];
-    while (queue.length > 0) {
-        const u = queue.shift()!;
-        sortedIds.push(u);
-        const children = graph.get(u) || [];
-        for (const v of children) {
-            inDegree.set(v, inDegree.get(v)! - 1);
-            if (inDegree.get(v) === 0) queue.push(v);
-        }
-    }
-
-    const startUpdates = new Map<number, number>();
-    
-    for (const id of sortedIds) {
-        const task = taskMap.get(id.toString());
-        const predecessors = adj.get(id) || [];
+        const allTasks = await prisma.task.findMany({ where: { projectId: triggerTask.projectId } });
         
-        if (predecessors.length > 0) {
-            let earliestStart = 0;
-            for (const p of predecessors) {
-                const parentId = p.parentId;
-                const parentStart = startUpdates.has(parentId) ? startUpdates.get(parentId)! : taskMap.get(parentId.toString()).start;
-                const parentDur = taskMap.get(parentId.toString()).duration;
-                const parentEnd = parentStart + parentDur;
-                
-                let candidateStart = 0;
-                switch (p.type) {
-                    case 'FS': candidateStart = parentEnd + p.lag; break;
-                    case 'SS': candidateStart = parentStart + p.lag; break;
-                    case 'FF': candidateStart = (parentEnd + p.lag) - task.duration; break;
-                    case 'SF': candidateStart = (parentStart + p.lag) - task.duration; break;
-                }
-                if (candidateStart > earliestStart) earliestStart = candidateStart;
-            }
-            if (earliestStart < 0) earliestStart = 0;
-            
-            if (earliestStart !== task.start) {
-                startUpdates.set(id, earliestStart);
-            }
-        }
-    }
+        // Build lookup maps: both by numeric ID and by WBS string
+        const taskById = new Map<number, any>();
+        const taskByWbs = new Map<string, any>();
+        allTasks.forEach(t => {
+            taskById.set(t.id, { ...t }); // clone so we can mutate start
+            if (t.wbs) taskByWbs.set(t.wbs.trim(), taskById.get(t.id));
+        });
 
-    if (startUpdates.size > 0) {
-        for (const [id, newStart] of startUpdates.entries()) {
-            await prisma.task.update({
-                where: { id },
-                data: { start: newStart }
-            });
+        // Determine which tasks are "summary" (parents) based on WBS hierarchy
+        // A task with WBS "1" is a summary if there exists "1.1", "1.2", etc.
+        const summaryWbsSet = new Set<string>();
+        for (const t of allTasks) {
+            if (!t.wbs) continue;
+            const parts = t.wbs.split('.');
+            // Register all ancestor WBS as summaries
+            for (let i = 1; i < parts.length; i++) {
+                summaryWbsSet.add(parts.slice(0, i).join('.'));
+            }
         }
+
+        // Compute effective start/duration for summary tasks from their children
+        function computeSummaryDates(wbs: string): { start: number; duration: number } {
+            const prefix = wbs + '.';
+            const children = allTasks.filter(t => t.wbs && t.wbs.startsWith(prefix));
+            if (children.length === 0) {
+                const task = taskByWbs.get(wbs);
+                return { start: task?.start || 0, duration: task?.duration || 0 };
+            }
+            
+            // Only use non-summary leaf children for calculation
+            const leafChildren = children.filter(c => !summaryWbsSet.has(c.wbs));
+            const allChildren = leafChildren.length > 0 ? leafChildren : children;
+            
+            let minStart = Infinity;
+            let maxEnd = 0;
+            for (const c of allChildren) {
+                const cTask = taskById.get(c.id)!;
+                const s = cTask.start || 0;
+                const d = cTask.duration || 0;
+                if (s < minStart) minStart = s;
+                if (s + d > maxEnd) maxEnd = s + d;
+            }
+            if (minStart === Infinity) minStart = 0;
+            return { start: minStart, duration: maxEnd - minStart };
+        }
+
+        // Resolve a predecessor key (WBS or ID string) to a task object
+        function resolveTask(key: string): any | null {
+            if (taskByWbs.has(key)) return taskByWbs.get(key);
+            const numId = parseInt(key);
+            if (!isNaN(numId) && taskById.has(numId)) return taskById.get(numId);
+            return null;
+        }
+
+        // Get effective start and end for a predecessor task
+        // For summary tasks, compute from children; for regular tasks, use stored values
+        function getEffectiveDates(task: any): { start: number; end: number } {
+            if (task.wbs && summaryWbsSet.has(task.wbs.trim())) {
+                const { start, duration } = computeSummaryDates(task.wbs.trim());
+                return { start, end: start + duration };
+            }
+            return { start: task.start || 0, end: (task.start || 0) + (task.duration || 0) };
+        }
+
+        // Check if taskWbs is a descendant of predWbs (to avoid circular parent refs)
+        function isDescendant(taskWbs: string, predWbs: string): boolean {
+            return taskWbs.startsWith(predWbs + '.');
+        }
+
+        // Process tasks in WBS order (natural sort) to ensure parents before children
+        const sortedTasks = [...allTasks].sort((a, b) => {
+            const p1 = (a.wbs || '').split('.').map(Number);
+            const p2 = (b.wbs || '').split('.').map(Number);
+            for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
+                if ((p1[i] || 0) !== (p2[i] || 0)) return (p1[i] || 0) - (p2[i] || 0);
+            }
+            return 0;
+        });
+
+        // Multiple passes to propagate through chains
+        const maxPasses = 5;
+        for (let pass = 0; pass < maxPasses; pass++) {
+            let changed = false;
+            
+            for (const task of sortedTasks) {
+                if (!task.predecessors) continue;
+                if (summaryWbsSet.has(task.wbs?.trim())) continue; // Skip summary tasks
+                
+                const deps = task.predecessors.split(/[,;]/).map((d: string) => d.trim()).filter(Boolean);
+                let earliestStart = -1;
+
+                for (const depStr of deps) {
+                    const parsed = parseDependency(depStr);
+                    const predTask = resolveTask(parsed.key);
+                    if (!predTask) continue;
+                    
+                    // Skip if this task is a child of the predecessor (circular)
+                    if (task.wbs && predTask.wbs && isDescendant(task.wbs.trim(), predTask.wbs.trim())) {
+                        continue;
+                    }
+
+                    const { start: pStart, end: pEnd } = getEffectiveDates(predTask);
+                    const taskDur = taskById.get(task.id)!.duration || 0;
+                    
+                    let candidateStart = 0;
+                    switch (parsed.type) {
+                        case 'FS': candidateStart = pEnd + parsed.lag; break;
+                        case 'SS': candidateStart = pStart + parsed.lag; break;
+                        case 'FF': candidateStart = (pEnd + parsed.lag) - taskDur; break;
+                        case 'SF': candidateStart = (pStart + parsed.lag) - taskDur; break;
+                    }
+                    if (candidateStart < 0) candidateStart = 0;
+                    if (candidateStart > earliestStart) earliestStart = candidateStart;
+                }
+
+                if (earliestStart >= 0) {
+                    const currentStart = taskById.get(task.id)!.start;
+                    if (earliestStart !== currentStart) {
+                        taskById.get(task.id)!.start = earliestStart;
+                        changed = true;
+                    }
+                }
+            }
+            
+            if (!changed) break;
+        }
+
+        // Write all changes to DB
+        for (const task of allTasks) {
+            const updated = taskById.get(task.id)!;
+            if (updated.start !== task.start) {
+                await prisma.task.update({
+                    where: { id: task.id },
+                    data: { start: updated.start }
+                });
+            }
+        }
+    } catch (e) {
+        console.error('autoSchedule error:', e);
     }
 }
 
 function parseDependency(dep: string) {
-    const match = dep.match(/^([\d\.]+)(FS|SS|FF|SF)?([+-]\d+d)?$/i);
-    if (!match) return { key: dep.trim(), type: 'FS', lag: 0 };
+    const match = dep.match(/^([\d\.]+)\s*(FS|SS|FF|SF)?\s*([+-]\s*\d+\s*d)?$/i);
+    if (!match) return { key: dep.replace(/[^0-9.]/g, '').trim(), type: 'FS' as string, lag: 0 };
     return {
         key: match[1],
-        type: match[2]?.toUpperCase() || 'FS',
-        lag: match[3] ? parseInt(match[3].toLowerCase().replace('d', '').replace('+', '')) : 0
+        type: (match[2]?.toUpperCase() || 'FS') as string,
+        lag: match[3] ? parseInt(match[3].replace(/\s/g, '').toLowerCase().replace('d', '')) : 0
     };
 }
 
