@@ -155,21 +155,34 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
   const handleImportAdvances = () => {
       if (!selectedContrato) return;
       
-      const newItens = (selectedContrato.items || []).map((it: any) => {
-          // Se tiver taskId, busca o progresso físico no cronograma
+      const items = selectedContrato.items || [];
+      if (items.length === 0) {
+          return alert("Nenhum item na planilha do contrato para importar.");
+      }
+      
+      const hasLinkedTasks = items.some((it: any) => it.taskId);
+      if (!hasLinkedTasks) {
+          return alert("Nenhum item está vinculado a uma tarefa do Cronograma.\n\nVá em 'Planilha de Itens', edite cada item e vincule à tarefa correspondente no cronograma.");
+      }
+
+      const newItens = items.map((it: any) => {
           if (it.taskId) {
-              const task = (proj.tasks || []).find((t: any) => t.id === it.taskId);
+              const task = (proj.tasks || []).find((t: any) => t.id === Number(it.taskId));
               if (task) {
-                  // Progresso físico atual (0-100)
+                  // Progresso físico atual (0-100) vindo do cronograma
                   const physicalProgress = task.progress || 0;
-                  // Quantidade total contratada
-                  const totalQtd = it.qtd;
-                  // Valor já medido anteriormente (em R$)
-                  const previouslyMeasuredVal = it.medido || 0;
-                  // Valor unitário
-                  const unitPrice = it.unitario;
                   
-                  const pctAnterior = (it.medido / it.total) * 100;
+                  // Valor total do item (qtd * unitario)
+                  const totalItem = it.total || (it.qtd * it.unitario) || 0;
+                  if (totalItem === 0) return { ...it, pctAtual: 0 };
+                  
+                  // Valor já medido em BMs anteriores aprovados
+                  const medidoAcumulado = getItemMedidoAcumulado(it.id);
+                  
+                  // Percentual anteriormente medido
+                  const pctAnterior = (medidoAcumulado / totalItem) * 100;
+                  
+                  // Delta: quanto avançou desde a última medição
                   const deltaPct = Math.max(0, physicalProgress - pctAnterior);
                   
                   return { ...it, pctAtual: Number(deltaPct.toFixed(2)) };
@@ -179,6 +192,7 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
       });
 
       setNovaMedicao({ ...novaMedicao, itens: newItens });
+      alert(`✅ Avanços importados com sucesso!\n\n${newItens.filter((i: any) => i.pctAtual > 0).length} item(ns) com progresso atualizado.`);
   };
 
   const handleAddItem = async () => {
