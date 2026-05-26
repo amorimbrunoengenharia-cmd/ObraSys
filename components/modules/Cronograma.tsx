@@ -814,11 +814,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
                         <p className="text-[9px] text-slate-500 mt-1">IDs separados por vírgula ou ponto e vírgula.</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="flex items-center gap-2 p-3 bg-[#0B1121] border border-slate-700 rounded-xl flex-1">
-                            <input type="checkbox" checked={editingTask.isSummary} onChange={e => setEditingTask({...editingTask, isSummary: e.target.checked})} className="w-4 h-4 accent-blue-500"/>
-                            <span className="text-[10px] font-bold text-slate-300">Tarefa Pai</span>
-                        </div>
+                    <div className="grid grid-cols-1 gap-4">
                         <div className="flex items-center gap-2 p-3 bg-[#0B1121] border border-slate-700 rounded-xl flex-1">
                             <input type="checkbox" checked={editingTask.critico} onChange={e => setEditingTask({...editingTask, critico: e.target.checked})} className="w-4 h-4 accent-red-500"/>
                             <span className="text-[10px] font-bold text-red-500">Caminho Crítico</span>
