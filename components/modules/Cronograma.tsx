@@ -417,20 +417,20 @@ export default function Cronograma({ proj, onRefresh }: any) {
       clone.style.overflow = 'visible';
       clone.style.display = 'flex';
       
-      const tableDiv = clone.querySelector('#table-scroll-container') as HTMLElement;
-      const ganttDiv = clone.querySelector('#gantt-scroll-container') as HTMLElement;
+      const tableDivClone = clone.querySelector('#table-scroll-container') as HTMLElement;
+      const ganttDivClone = clone.querySelector('#gantt-scroll-container') as HTMLElement;
       
-      if (tableDiv) {
-          tableDiv.style.overflow = 'visible';
-          tableDiv.style.width = 'max-content';
-          tableDiv.style.height = 'max-content';
+      if (tableDivClone) {
+          tableDivClone.style.overflow = 'visible';
+          tableDivClone.style.width = 'max-content';
+          tableDivClone.style.height = 'max-content';
       }
 
-      if (ganttDiv) {
-          ganttDiv.style.overflow = 'visible';
-          ganttDiv.style.width = 'max-content';
-          ganttDiv.style.height = 'max-content';
-          ganttDiv.style.flex = 'none';
+      if (ganttDivClone) {
+          ganttDivClone.style.overflow = 'visible';
+          ganttDivClone.style.width = 'max-content';
+          ganttDivClone.style.height = 'max-content';
+          ganttDivClone.style.flex = 'none';
       }
 
       // Ocultar SVGs de setas no clone para evitar crash do html2canvas com SVG markers
