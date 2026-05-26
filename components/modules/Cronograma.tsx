@@ -534,6 +534,15 @@ export default function Cronograma({ proj, onRefresh }: any) {
 
   // A função de renderGanttLines foi movida para dentro do render para ter acesso ao escopo minStartOffset
 
+  // Calculate dynamic width based on actual tasks instead of hardcoding 300 days
+  const allStarts = visibleTarefas.map((t: any) => Number(t.start) || 0);
+  const allEnds = visibleTarefas.map((t: any) => (Number(t.start) || 0) + (Number(t.duration) || 0));
+  const minGanttStart = allStarts.length > 0 ? Math.max(0, Math.min(...allStarts) - 2) : 0;
+  const maxGanttEnd = allEnds.length > 0 ? Math.max(...allEnds) : minGanttStart + 30;
+  const totalDays = Math.max(30, maxGanttEnd - minGanttStart + 10);
+  const scale = 20;
+  const totalGanttWidth = totalDays * scale;
+
   return (
     <div className="h-full flex flex-col animate-in fade-in relative overflow-hidden bg-[#0B1121] text-slate-200 font-['Urbanist',_sans-serif] print:h-auto print:overflow-visible print:bg-white print:text-black">
          
@@ -729,7 +738,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
                         <div className="sticky top-0 z-20 bg-[#0f172a] border-b border-slate-800 flex flex-col shadow-xl">
                             {/* Linha dos Meses */}
                             <div className="flex h-7 bg-[#162032]">
-                                {Array.from({ length: 300 }).reduce((acc: any[], _, i) => {
+                                {Array.from({ length: totalDays }).reduce((acc: any[], _, i) => {
                                     const scale = 20;
                                     const starts = visibleTarefas.map((t: any) => Number(t.start) || 0);
                                     const minStartOffset = starts.length > 0 ? Math.max(0, Math.min(...starts) - 2) : 0;
@@ -751,7 +760,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
                             </div>
                             {/* Linha dos Dias */}
                             <div className="flex h-7 bg-[#0f172a]">
-                                {Array.from({ length: 300 }).map((_, i) => {
+                                {Array.from({ length: totalDays }).map((_, i) => {
                                     const scale = 20;
                                     const starts = visibleTarefas.map((t: any) => Number(t.start) || 0);
                                     const minStartOffset = starts.length > 0 ? Math.max(0, Math.min(...starts) - 2) : 0;
@@ -767,7 +776,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
                                 })}
                             </div>
                         </div>
-                        <div className="relative min-w-[6000px]">
+                        <div className="relative" style={{ minWidth: `${totalGanttWidth}px` }}>
                             {/* Marcador de Hoje (Linha Vertical) */}
                             {(() => {
                                 const starts = visibleTarefas.map((t: any) => Number(t.start) || 0);
@@ -777,7 +786,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
                                 const todayTime = new Date().setHours(0,0,0,0);
                                 const offsetDays = Math.floor((todayTime - baseTime) / (1000 * 60 * 60 * 24));
                                 
-                                if (offsetDays >= minStartOffset && offsetDays < minStartOffset + 300) {
+                                if (offsetDays >= minStartOffset && offsetDays < minStartOffset + totalDays) {
                                     const leftPos = (offsetDays - minStartOffset) * scale + (scale / 2);
                                     return (
                                         <div className="absolute top-0 bottom-0 w-px bg-blue-500/50 z-0 pointer-events-none" style={{ left: `${leftPos}px` }}>
