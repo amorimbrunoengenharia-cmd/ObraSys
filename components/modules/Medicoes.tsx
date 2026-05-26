@@ -47,6 +47,7 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
     itens: [] 
   });
   const [novoAditivo, setNovoAditivo] = useState({ valor: 0, motivo: "" });
+  const [importedCronogramaItems, setImportedCronogramaItems] = useState<any[]>([]);
   const [availableSuppliers, setAvailableSuppliers] = useState<any[]>([]);
 
   React.useEffect(() => {
@@ -155,44 +156,122 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
   const handleImportAdvances = () => {
       if (!selectedContrato) return;
       
-      const items = selectedContrato.items || [];
-      if (items.length === 0) {
-          return alert("Nenhum item na planilha do contrato para importar.");
+      const tasks = (proj.tasks || []);
+      if (tasks.length === 0) {
+          return alert("Nenhuma tarefa encontrada no Cronograma Master desta obra.");
       }
       
-      const hasLinkedTasks = items.some((it: any) => it.taskId);
-      if (!hasLinkedTasks) {
-          return alert("Nenhum item está vinculado a uma tarefa do Cronograma.\n\nVá em 'Planilha de Itens', edite cada item e vincule à tarefa correspondente no cronograma.");
-      }
-
-      const newItens = items.map((it: any) => {
-          if (it.taskId) {
-              const task = (proj.tasks || []).find((t: any) => t.id === Number(it.taskId));
-              if (task) {
-                  // Progresso físico atual (0-100) vindo do cronograma
-                  const physicalProgress = task.progress || 0;
-                  
-                  // Valor total do item (qtd * unitario)
-                  const totalItem = it.total || (it.qtd * it.unitario) || 0;
-                  if (totalItem === 0) return { ...it, pctAtual: 0 };
-                  
-                  // Valor já medido em BMs anteriores aprovados
-                  const medidoAcumulado = getItemMedidoAcumulado(it.id);
-                  
-                  // Percentual anteriormente medido
-                  const pctAnterior = (medidoAcumulado / totalItem) * 100;
-                  
-                  // Delta: quanto avançou desde a última medição
-                  const deltaPct = Math.max(0, physicalProgress - pctAnterior);
-                  
-                  return { ...it, pctAtual: Number(deltaPct.toFixed(2)) };
+      const items = selectedContrato.items || [];
+      
+      // CASO 1: Contrato já tem itens vinculados a tarefas
+      if (items.length > 0 && items.some((it: any) => it.taskId)) {
+          const newItens = items.map((it: any) => {
+              if (it.taskId) {
+                  const task = tasks.find((t: any) => t.id === Number(it.taskId));
+                  if (task) {
+                      const physicalProgress = task.progress || 0;
+                      const totalItem = it.total || (it.qtd * it.unitario) || 0;
+                      if (totalItem === 0) return { ...it, pctAtual: 0 };
+                      const medidoAcumulado = getItemMedidoAcumulado(it.id);
+                      const pctAnterior = (medidoAcumulado / totalItem) * 100;
+                      const deltaPct = Math.max(0, physicalProgress - pctAnterior);
+                      return { ...it, pctAtual: Number(deltaPct.toFixed(2)) };
+                  }
               }
+              return { ...it, pctAtual: 0 };
+          });
+          setNovaMedicao({ ...novaMedicao, itens: newItens });
+          alert(`✅ Avanços importados com sucesso!\n\n${newItens.filter((i: any) => i.pctAtual > 0).length} item(ns) com progresso atualizado.`);
+          return;
+      }
+      
+      // CASO 2: Contrato sem itens — importar tarefas do cronograma diretamente
+      // Ordenar por WBS natural
+      const sortedTasks = [...tasks].sort((a: any, b: any) => {
+          const p1 = (a.wbs || '').split('.').map(Number);
+          const p2 = (b.wbs || '').split('.').map(Number);
+          for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
+              if ((p1[i] || 0) !== (p2[i] || 0)) return (p1[i] || 0) - (p2[i] || 0);
           }
-          return { ...it, pctAtual: 0 };
+          return 0;
+      });
+      
+      // Filtrar apenas tarefas folha (não-sumário) — as que realmente têm trabalho
+      const leafTasks = sortedTasks.filter((t: any) => {
+          const wbs = t.wbs || '';
+          return !sortedTasks.some((other: any) => 
+              other.wbs && other.wbs !== wbs && other.wbs.startsWith(wbs + '.')
+          );
+      });
+      
+      // Criar itens temporários a partir das tarefas do cronograma
+      const cronogramaItens = leafTasks.map((t: any) => ({
+          id: t.id,
+          desc: `${t.wbs} - ${t.name || t.title}`,
+          unidade: 'vb',
+          qtd: 1,
+          unitario: 0,
+          total: 0,
+          taskId: t.id,
+          pctAtual: t.progress || 0,
+          fromCronograma: true
+      }));
+      
+      setNovaMedicao({ ...novaMedicao, itens: cronogramaItens });
+      
+      // Também precisamos mostrar esses itens na tabela — vamos sobrescrever os items do contrato temporariamente
+      setImportedCronogramaItems(cronogramaItens);
+      
+      alert(`✅ ${cronogramaItens.length} etapas importadas do Cronograma Master!\n\nOs avanços físicos (%) foram preenchidos automaticamente a partir do progresso de cada tarefa.`);
+  };
+
+  const handleSyncCronograma = async () => {
+      if (!selectedContrato) return;
+      const tasks = (proj.tasks || []);
+      if (tasks.length === 0) return alert("Nenhuma tarefa no Cronograma Master.");
+      
+      const items = selectedContrato.items || [];
+      
+      // Encontrar apenas tarefas folha do cronograma
+      const sortedTasks = [...tasks].sort((a: any, b: any) => {
+          const p1 = (a.wbs || '').split('.').map(Number);
+          const p2 = (b.wbs || '').split('.').map(Number);
+          for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
+              if ((p1[i] || 0) !== (p2[i] || 0)) return (p1[i] || 0) - (p2[i] || 0);
+          }
+          return 0;
+      });
+      const leafTasks = sortedTasks.filter((t: any) => {
+          const wbs = t.wbs || '';
+          return !sortedTasks.some((other: any) => other.wbs && other.wbs !== wbs && other.wbs.startsWith(wbs + '.'));
       });
 
-      setNovaMedicao({ ...novaMedicao, itens: newItens });
-      alert(`✅ Avanços importados com sucesso!\n\n${newItens.filter((i: any) => i.pctAtual > 0).length} item(ns) com progresso atualizado.`);
+      // Filtrar as tarefas que AINDA NÃO estão na planilha do contrato
+      const newTasksToImport = leafTasks.filter((t: any) => !items.some((it: any) => Number(it.taskId) === t.id));
+      
+      if (newTasksToImport.length === 0) {
+          return alert("Todas as tarefas do cronograma já estão vinculadas na planilha do contrato!");
+      }
+
+      if (!confirm(`Foram encontradas ${newTasksToImport.length} novas tarefas no cronograma.\nDeseja importar todas como itens na planilha deste contrato?`)) return;
+
+      setIsSaving(true);
+      let successCount = 0;
+      for (const t of newTasksToImport) {
+          const newItemPayload = {
+              desc: `${t.wbs} - ${t.name || t.title}`,
+              unidade: 'vb',
+              qtd: 1,
+              unitario: 0,
+              taskId: t.id.toString()
+          };
+          const res = await addContractItem(selectedContrato.id, newItemPayload);
+          if (res.success) successCount++;
+      }
+      setIsSaving(false);
+      
+      if (onRefresh) onRefresh();
+      alert(`✅ Sincronização concluída!\n\n${successCount} novas tarefas do cronograma foram importadas.\nAgora você pode editar os valores unitários delas na planilha.`);
   };
 
   const handleAddItem = async () => {
@@ -692,7 +771,12 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
                              <div className="bg-white dark:bg-[#162032] rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden animate-in fade-in">
                                 <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-[#111827] flex justify-between items-center">
                                     <h3 className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Itens Contratados</h3>
-                                    <button onClick={()=>setIsItemModalOpen(true)} title="Adicionar Novo Item" className="p-2 bg-white dark:bg-slate-800 rounded-lg border text-blue-500 hover:bg-blue-50"><Plus size={16}/></button>
+                                    <div className="flex gap-2">
+                                        <button onClick={handleSyncCronograma} title="Sincronizar tarefas do Cronograma Master" className="flex items-center gap-1 p-2 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg border border-blue-100 hover:bg-blue-100 font-bold text-[10px] uppercase">
+                                            <Wand2 size={14}/> Sincronizar do Cronograma
+                                        </button>
+                                        <button onClick={()=>setIsItemModalOpen(true)} title="Adicionar Novo Item Manual" className="p-2 bg-white dark:bg-slate-800 rounded-lg border text-blue-500 hover:bg-blue-50"><Plus size={16}/></button>
+                                    </div>
                                 </div>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-xs text-left">
@@ -850,17 +934,20 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {(selectedContrato.items || []).map((it: any, idx: number) => {
+                                    {((importedCronogramaItems.length > 0 ? importedCronogramaItems : selectedContrato.items) || []).map((it: any, idx: number) => {
                                         const pct = novaMedicao.itens[idx]?.pctAtual || 0;
-                                        const pctAnterior = (it.medido / it.total) * 100;
-                                        const valorPeriodo = it.total * (pct / 100);
+                                        const totalItem = it.total || (it.qtd * it.unitario) || 0;
+                                        const medidoAcum = importedCronogramaItems.length > 0 ? 0 : getItemMedidoAcumulado(it.id);
+                                        const pctAnterior = totalItem > 0 ? (medidoAcum / totalItem) * 100 : 0;
+                                        const valorPeriodo = totalItem * (pct / 100);
                                         return (
                                             <tr key={it.id} className="border-b dark:border-slate-800">
                                                 <td className="px-4 py-6">
                                                     <span className="font-bold text-slate-700 dark:text-slate-200">{it.desc}</span>
-                                                    <p className="text-[9px] text-slate-400 uppercase font-black">{it.unidade} • {formatter.format(it.unitario)}/un</p>
+                                                    {it.fromCronograma && <span className="ml-2 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 text-[8px] font-black uppercase rounded">Cronograma</span>}
+                                                    <p className="text-[9px] text-slate-400 uppercase font-black">{it.unidade} {totalItem > 0 ? `• ${formatter.format(it.unitario)}/un` : ''}</p>
                                                 </td>
-                                                <td className="px-4 py-6 text-right font-bold text-slate-400">{formatter.format(it.total)}</td>
+                                                <td className="px-4 py-6 text-right font-bold text-slate-400">{totalItem > 0 ? formatter.format(totalItem) : '-'}</td>
                                                 <td className="px-4 py-6 text-right font-bold text-slate-400">{pctAnterior.toFixed(2)}%</td>
                                                 <td className="px-4 py-6 text-right">
                                                     <div className="flex items-center justify-end gap-1">
