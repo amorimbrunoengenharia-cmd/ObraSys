@@ -368,7 +368,7 @@ export default function PortalCliente({ proj, localPosts, setLocalPosts, setActi
                                 </div>
 
                                 <div className="relative aspect-video bg-slate-100 dark:bg-black overflow-hidden mx-2 rounded-[2rem]">
-                                    <img src={item.image ? (item.image.startsWith('/') ? item.image : `/${item.image}`) : ''} alt="Obra" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+                                    <img src={item.image ? (item.image.startsWith('http') || item.image.startsWith('/') ? item.image : `/${item.image}`) : ''} alt="Obra" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
                                 </div>
 
                                 <div className="p-6 flex justify-between items-center">
