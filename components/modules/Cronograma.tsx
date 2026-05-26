@@ -410,16 +410,13 @@ export default function Cronograma({ proj, onRefresh }: any) {
       const origContainerStyle = container.style.cssText;
       let origTableStyle = '';
       let origGanttStyle = '';
-      const hiddenElements: HTMLElement[] = [];
+      const hiddenElements: any[] = [];
 
       // Forçar expansão no DOM original
       container.style.width = 'max-content';
       container.style.height = 'max-content';
       container.style.overflow = 'visible';
       container.style.display = 'flex';
-      
-      const tableDiv = document.getElementById('table-scroll-container');
-      const ganttDiv = document.getElementById('gantt-scroll-container');
       
       if (tableDiv) {
           origTableStyle = tableDiv.style.cssText;
