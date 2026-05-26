@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
         return new NextResponse(buffer, {
            headers: {
               'Content-Type': 'application/pdf',
-              'Content-Disposition': `attachment; filename="contrato_${publicIdWithExt.split('/').pop() || 'documento.pdf'}"`
+              'Content-Disposition': `inline; filename="contrato_${publicIdWithExt.split('/').pop() || 'documento.pdf'}"`
            }
         });
       }
