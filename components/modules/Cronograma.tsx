@@ -255,6 +255,52 @@ export default function Cronograma({ proj, onRefresh }: any) {
     onRefresh?.();
   };
 
+  const handleRelativeChange = (field: 'start' | 'duration', value: number) => {
+    let newStartRel = field === 'start' ? value : editingTask.start;
+    let newDuration = field === 'duration' ? value : editingTask.duration;
+    
+    let updates: any = { [field]: value };
+    
+    const baseDate = proj?.startDate ? new Date(proj.startDate) : (proj?.osDate ? new Date(proj.osDate) : new Date(proj?.createdAt));
+    
+    if (baseDate && !isNaN(baseDate.getTime())) {
+        const startMs = baseDate.getTime() + (newStartRel * 24 * 60 * 60 * 1000);
+        const endMs = startMs + (newDuration * 24 * 60 * 60 * 1000);
+        
+        updates.actualStart = new Date(startMs).toISOString();
+        updates.actualFinish = new Date(endMs).toISOString();
+    }
+    
+    setEditingTask({ ...editingTask, ...updates });
+  };
+
+  const handleActualDatesChange = (field: 'actualStart' | 'actualFinish', value: string) => {
+    let newStart = field === 'actualStart' ? value : editingTask.actualStart;
+    let newFinish = field === 'actualFinish' ? value : editingTask.actualFinish;
+    
+    let updates: any = { [field]: value };
+    
+    if (newStart && newFinish) {
+        const d1 = new Date(newStart);
+        const d2 = new Date(newFinish);
+        const diffTime = d2.getTime() - d1.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        if (!isNaN(diffDays)) updates.duration = Math.max(0, diffDays);
+    }
+
+    if (newStart) {
+        const baseDate = proj?.startDate ? new Date(proj.startDate) : (proj?.osDate ? new Date(proj.osDate) : new Date(proj?.createdAt));
+        if (baseDate && !isNaN(baseDate.getTime())) {
+            const tStart = new Date(newStart);
+            const diffTime = tStart.getTime() - baseDate.getTime();
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+            if (!isNaN(diffDays)) updates.start = diffDays;
+        }
+    }
+
+    setEditingTask({ ...editingTask, ...updates });
+  };
+
   const handleExport = () => alert("⬇️ Gerando arquivo XML compatível com MS Project...");
 
   // --- RENDERIZADOR DE LINHAS DE CONEXÃO (GANTT) ---
@@ -269,8 +315,9 @@ export default function Cronograma({ proj, onRefresh }: any) {
                 const preds = t.predecessors.split(/[,;]/);
                 
                 return preds.map((pStr: any) => {
-                    const pId = parseInt(pStr);
-                    const pIdx = visibleTarefas.findIndex(x => x.id === pId);
+                    const pMatch = pStr.trim();
+                    if (!pMatch) return null;
+                    const pIdx = visibleTarefas.findIndex(x => x.wbs === pMatch || x.id.toString() === pMatch);
                     if (pIdx === -1) return null;
                     
                     const parent = visibleTarefas[pIdx];
@@ -281,7 +328,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
                     
                     return (
                         <path 
-                            key={`${t.id}-${pId}`} 
+                            key={`${t.id}-${pMatch}`} 
                             d={`M ${x1} ${y1} L ${x1 + 10} ${y1} L ${x1 + 10} ${y2} L ${x2} ${y2}`} 
                             fill="none" 
                             stroke="#3b82f6" 
@@ -668,22 +715,33 @@ export default function Cronograma({ proj, onRefresh }: any) {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Início Relativo</label>
-                            <input type="number" disabled={isMestre} value={editingTask.start} onChange={e => setEditingTask({...editingTask, start: Number(e.target.value)})} className="w-full p-3 bg-[#0B1121] border border-slate-700 rounded-xl text-sm text-white outline-none disabled:opacity-50"/>
+                            <input type="number" disabled={isMestre} value={editingTask.start} onChange={e => handleRelativeChange('start', Number(e.target.value))} className="w-full p-3 bg-[#0B1121] border border-slate-700 rounded-xl text-sm text-white outline-none disabled:opacity-50"/>
                         </div>
                         <div>
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Duração (Dias)</label>
-                            <input type="number" disabled={isMestre} value={editingTask.duration} onChange={e => setEditingTask({...editingTask, duration: Number(e.target.value)})} className="w-full p-3 bg-[#0B1121] border border-slate-700 rounded-xl text-sm text-white outline-none disabled:opacity-50"/>
+                            <input type="number" disabled={isMestre} value={editingTask.duration} onChange={e => handleRelativeChange('duration', Number(e.target.value))} className="w-full p-3 bg-[#0B1121] border border-slate-700 rounded-xl text-sm text-white outline-none disabled:opacity-50"/>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Início Real (Actual)</label>
-                            <input type="date" value={formatDateForInput(editingTask.actualStart)} onChange={e => setEditingTask({...editingTask, actualStart: e.target.value})} className="w-full p-3 bg-[#0B1121] border border-slate-700 rounded-xl text-xs text-white outline-none"/>
+                            <input type="date" value={formatDateForInput(editingTask.actualStart)} onChange={e => handleActualDatesChange('actualStart', e.target.value)} className="w-full p-3 bg-[#0B1121] border border-slate-700 rounded-xl text-xs text-white outline-none"/>
                         </div>
                         <div>
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Término Real (Actual)</label>
-                            <input type="date" value={formatDateForInput(editingTask.actualFinish)} onChange={e => setEditingTask({...editingTask, actualFinish: e.target.value})} className="w-full p-3 bg-[#0B1121] border border-slate-700 rounded-xl text-xs text-white outline-none"/>
+                            <input type="date" value={formatDateForInput(editingTask.actualFinish)} onChange={e => handleActualDatesChange('actualFinish', e.target.value)} className="w-full p-3 bg-[#0B1121] border border-slate-700 rounded-xl text-xs text-white outline-none"/>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Nível (Hierarquia WBS)</label>
+                            <input type="number" min="0" max="5" disabled={isMestre} value={editingTask.level || 0} onChange={e => setEditingTask({...editingTask, level: Number(e.target.value)})} className="w-full p-3 bg-[#0B1121] border border-slate-700 rounded-xl text-sm text-white outline-none disabled:opacity-50" title="Use 0 para Tarefa Mãe principal, 1 para Tarefa Filha, 2 para Neta, etc."/>
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Ordem na Lista</label>
+                            <input type="number" disabled={isMestre} value={editingTask.order || 0} onChange={e => setEditingTask({...editingTask, order: Number(e.target.value)})} className="w-full p-3 bg-[#0B1121] border border-slate-700 rounded-xl text-sm text-white outline-none disabled:opacity-50"/>
                         </div>
                     </div>
 
