@@ -57,6 +57,7 @@ export async function updateTaskDetails(taskId: number, data: any) {
             where: { id: taskId },
             data: {
                 name: data.name,
+                wbs: data.wbs,
                 title: data.name,
                 start: Number(data.start),
                 duration: Number(data.duration),
