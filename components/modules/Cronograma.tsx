@@ -338,12 +338,50 @@ export default function Cronograma({ proj, onRefresh }: any) {
     setEditingTask({ ...editingTask, ...updates });
   };
 
-  const handleExport = () => alert("⬇️ Gerando arquivo XML compatível com MS Project...");
+  const handleExport = () => {
+    if (!dynamicBaseDate) return alert("Erro: Data base não definida.");
+    
+    // Geração simplificada de XML compatível com MS Project
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Project xmlns="http://schemas.microsoft.com/project">
+    <Name>${proj.name || 'Projeto'}</Name>
+    <Tasks>
+        ${visibleTarefas.map((t: any) => {
+            const start = new Date(dynamicBaseDate.getTime() + (Number(t.start) || 0) * 86400000);
+            const finish = new Date(dynamicBaseDate.getTime() + ((Number(t.start) || 0) + (Number(t.duration) || 0)) * 86400000);
+            return `
+        <Task>
+            <UID>${t.id}</UID>
+            <ID>${t.id}</ID>
+            <Name>${t.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</Name>
+            <Start>${start.toISOString()}</Start>
+            <Finish>${finish.toISOString()}</Finish>
+            <Duration>PT${(Number(t.duration) || 0) * 8}H0M0S</Duration>
+            <PercentComplete>${t.progress || 0}</PercentComplete>
+            <WBS>${t.wbs || ''}</WBS>
+            <Summary>${t.isSummary ? 1 : 0}</Summary>
+        </Task>`;
+        }).join('')}
+    </Tasks>
+</Project>`;
+
+    const blob = new Blob([xml], { type: 'application/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Cronograma_${(proj.name || 'Projeto').replace(/[^a-z0-9]/gi, '_')}.xml`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   // A função de renderGanttLines foi movida para dentro do render para ter acesso ao escopo minStartOffset
 
   return (
-    <div className="h-full flex flex-col animate-in fade-in relative overflow-hidden bg-[#0B1121] text-slate-200 font-['Urbanist',_sans-serif]">
+    <div className="h-full flex flex-col animate-in fade-in relative overflow-hidden bg-[#0B1121] text-slate-200 font-['Urbanist',_sans-serif] print:h-auto print:overflow-visible print:bg-white print:text-black">
          
          {isImporting && <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white"><div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div><h3 className="font-bold">Sincronizando MS Project...</h3></div>}
 
@@ -370,7 +408,8 @@ export default function Cronograma({ proj, onRefresh }: any) {
                     </button>
                 </div>
 
-                <div className="flex gap-1.5 border-r border-slate-800 pr-3 mr-3">
+                <div className="flex gap-1.5 border-r border-slate-800 pr-3 mr-3 print:hidden">
+                    <button onClick={handlePrint} title="Baixar PDF / Imprimir" className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-all"><Printer size={16}/></button>
                     {!isMestre && <button onClick={handleImportClick} title="Importar do MS Project" className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-all"><FileUp size={16}/></button>}
                     {!isMestre && <button onClick={handleExport} title="Exportar para XML" className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-all"><FileDown size={16}/></button>}
                 </div>
@@ -384,15 +423,15 @@ export default function Cronograma({ proj, onRefresh }: any) {
          </div>
 
          {activeTab === 'table' ? (
-            <div className="flex-1 flex overflow-hidden select-none">
+            <div className="flex-1 flex overflow-hidden select-none print:overflow-visible print:block">
                 {/* TABELA WBS (ESQUERDA) */}
                 <div 
-                  className="overflow-auto bg-[#0B1121] border-r border-slate-800 transition-all duration-75"
+                  className="overflow-auto bg-[#0B1121] border-r border-slate-800 transition-all duration-75 print:overflow-visible print:w-full print:bg-white print:text-black print:border-none"
                   style={{ width: isGanttVisible ? `${splitWidth}%` : '100%' }}
                 >
                     <table className="w-full border-collapse text-[10px]">
-                        <thead className="sticky top-0 z-20 bg-[#162032] border-b border-slate-700">
-                            <tr className="text-slate-500 uppercase font-black tracking-widest text-[9px]">
+                        <thead className="sticky top-0 z-20 bg-[#162032] border-b border-slate-700 print:bg-slate-100 print:text-black">
+                            <tr className="text-slate-500 uppercase font-black tracking-widest text-[9px] print:text-black">
                                 <th className="px-3 py-4 text-left w-12 border-r border-slate-800">WBS</th>
                                 <th className="px-4 py-4 text-left min-w-[250px] border-r border-slate-800">Nome da Atividade</th>
                                 <th className="px-2 py-4 text-center w-16 border-r border-slate-800">Status</th>
@@ -425,8 +464,8 @@ export default function Cronograma({ proj, onRefresh }: any) {
                                 
                                 return (
                                     <tr key={t.id} onClick={() => handleEdit(t)} className={`group hover:bg-blue-600/5 transition-colors cursor-pointer border-b border-slate-800/30 h-[40px] ${isSummary ? 'bg-slate-900/40 font-bold text-white' : 'text-slate-400'}`}>
-                                        <td className="px-3 border-r border-slate-800/50 text-slate-500 font-mono">{t.wbs}</td>
-                                        <td className="px-4 border-r border-slate-800/50">
+                                        <td className="px-3 border-r border-slate-800/50 text-slate-500 font-mono print:text-black print:border-slate-300">{t.wbs}</td>
+                                        <td className="px-4 border-r border-slate-800/50 print:border-slate-300">
                                             <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 20}px` }}>
                                                 {isSummary ? (
                                                     <button onClick={(e) => { e.stopPropagation(); toggleCollapse(t.id); }} className={`p-1 rounded transition-colors ${isCollapsed ? 'text-blue-500 bg-blue-500/10' : 'text-slate-500 hover:bg-slate-700'}`}>
@@ -520,7 +559,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
                 {isGanttVisible && (
                   <div 
                     onMouseDown={handleMouseDown}
-                    className={`w-1.5 hover:w-2 bg-slate-800 hover:bg-blue-600 cursor-col-resize transition-all flex items-center justify-center group relative z-30 ${isResizing ? 'bg-blue-600 w-2' : ''}`}
+                    className={`w-1.5 hover:w-2 bg-slate-800 hover:bg-blue-600 cursor-col-resize transition-all flex items-center justify-center group relative z-30 print:hidden ${isResizing ? 'bg-blue-600 w-2' : ''}`}
                   >
                     <div className="h-10 w-full flex items-center justify-center opacity-0 group-hover:opacity-100">
                       <GripVertical size={12} className="text-white"/>
@@ -530,7 +569,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
 
                 {/* GRÁFICO GANTT (DIREITA) */}
                 {isGanttVisible && (
-                    <div className="flex-1 overflow-auto bg-[#0B1121] relative transition-all duration-75">
+                    <div className="flex-1 overflow-auto bg-[#0B1121] relative transition-all duration-75 print:overflow-visible print:bg-white">
                         <div className="sticky top-0 z-20 bg-[#0f172a] border-b border-slate-800 flex flex-col shadow-xl">
                             {/* Linha dos Meses */}
                             <div className="flex h-7 bg-[#162032]">
