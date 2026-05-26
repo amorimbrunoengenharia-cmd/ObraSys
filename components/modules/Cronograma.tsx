@@ -195,6 +195,50 @@ export default function Cronograma({ proj, onRefresh }: any) {
   const [editingTask, setEditingTask] = useState<any>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
 
+  // CÁLCULOS DO GANTT PREMIUM
+  const ganttOffsetDays = useMemo(() => {
+    if (tarefas.length === 0) return 0;
+    const minStart = Math.min(...tarefas.map((t: any) => Number(t.start) || 0));
+    return Math.max(0, minStart - 5); // 5 days buffer
+  }, [tarefas]);
+
+  const ganttDaysCount = 200;
+  
+  const ganttDays = useMemo(() => {
+      const days = [];
+      const baseMs = dynamicBaseDate && !isNaN(dynamicBaseDate.getTime()) ? dynamicBaseDate.getTime() : Date.now();
+      for (let i = 0; i < ganttDaysCount; i++) {
+          const dayIndex = i + ganttOffsetDays;
+          days.push(new Date(baseMs + dayIndex * 24 * 60 * 60 * 1000));
+      }
+      return days;
+  }, [dynamicBaseDate, ganttOffsetDays]);
+
+  const ganttMonths = useMemo(() => {
+      const months: { label: string; days: number }[] = [];
+      if (ganttDays.length === 0) return months;
+      let currentMonth = ganttDays[0].getMonth();
+      let currentYear = ganttDays[0].getFullYear();
+      let currentCount = 0;
+      
+      for (const d of ganttDays) {
+          if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+              currentCount++;
+          } else {
+              const label = ganttDays[currentCount - 1].toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+              months.push({ label, days: currentCount });
+              currentMonth = d.getMonth();
+              currentYear = d.getFullYear();
+              currentCount = 1;
+          }
+      }
+      if (currentCount > 0) {
+          const label = ganttDays[ganttDays.length - 1].toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+          months.push({ label, days: currentCount });
+      }
+      return months;
+  }, [ganttDays]);
+
   // --- FUNÇÕES DE INTERAÇÃO ---
   const toggleCollapse = (id: number) => {
     const newCollapsed = new Set(collapsedTasks);
@@ -364,10 +408,10 @@ export default function Cronograma({ proj, onRefresh }: any) {
                     const isFF = /FF/i.test(pMatchRaw);
                     const isSF = /SF/i.test(pMatchRaw);
                     
-                    const pStart = parent.start * scale;
-                    const pEnd = (parent.start + parent.duration) * scale;
-                    const tStart = t.start * scale;
-                    const tEnd = (t.start + t.duration) * scale;
+                    const pStart = (parent.start - ganttOffsetDays) * scale;
+                    const pEnd = ((parent.start + parent.duration) - ganttOffsetDays) * scale;
+                    const tStart = (t.start - ganttOffsetDays) * scale;
+                    const tEnd = ((t.start + t.duration) - ganttOffsetDays) * scale;
                     
                     const y1 = pIdx * rowHeight + rowHeight / 2;
                     const y2 = idx * rowHeight + rowHeight / 2;
@@ -593,33 +637,53 @@ export default function Cronograma({ proj, onRefresh }: any) {
 
                 {/* GRÁFICO GANTT (DIREITA) */}
                 {isGanttVisible && (
-                    <div className="flex-1 overflow-auto bg-[#0f172a] relative transition-all duration-75">
-                        <div className="sticky top-0 z-10 bg-[#111827] border-b border-slate-800 h-10 flex">
-                            {Array.from({ length: 200 }).map((_, i) => {
-                                const scale = 15;
-                                const date = dynamicBaseDate && !isNaN(dynamicBaseDate.getTime()) ? new Date(dynamicBaseDate.getTime() + i * 24 * 60 * 60 * 1000) : null;
-                                const isMonday = date?.getDay() === 1;
-                                return (
-                                    <div key={i} className={`flex-shrink-0 border-r border-slate-800/20 h-full flex flex-col items-center justify-center ${isMonday ? 'bg-slate-800/40 text-slate-400' : 'text-slate-600'}`} style={{ width: `${scale}px` }}>
-                                        {isMonday && <span className="text-[9px] font-bold" style={{writingMode: 'vertical-rl', transform: 'rotate(180deg)'}}>{date?.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>}
+                    <div className="flex-1 overflow-auto bg-[#0f172a] relative transition-all duration-75" style={{ scrollBehavior: 'smooth' }}>
+                        <div className="sticky top-0 z-30 bg-[#0f172a] shadow-md border-b border-slate-800 flex flex-col w-max">
+                            {/* Linha dos Meses */}
+                            <div className="flex h-5 items-center">
+                                {ganttMonths.map((m, i) => (
+                                    <div key={i} className="flex items-center justify-center border-r border-slate-800/50 bg-[#162032] text-[9px] font-black uppercase text-slate-400 tracking-widest h-full" style={{ width: `${m.days * 15}px` }}>
+                                        {m.label}
                                     </div>
-                                );
-                            })}
+                                ))}
+                            </div>
+                            {/* Linha dos Dias */}
+                            <div className="flex h-5">
+                                {ganttDays.map((date, i) => {
+                                    const isMonday = date.getDay() === 1;
+                                    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                                    return (
+                                        <div key={i} className={`flex-shrink-0 border-r border-slate-800/20 h-full flex items-center justify-center ${isMonday ? 'bg-blue-900/20 text-blue-400 font-bold' : isWeekend ? 'bg-slate-800/20 text-slate-600' : 'text-slate-500'}`} style={{ width: '15px' }}>
+                                            {isMonday ? <span className="text-[8px]">{date.getDate()}</span> : ''}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
-                        <div className="relative min-w-[3000px]">
+                        <div className="relative min-w-[3000px] w-max">
+                            {/* Background Weekend Grid */}
+                            <div className="absolute inset-0 flex pointer-events-none z-0">
+                                {ganttDays.map((date, i) => {
+                                    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                                    return (
+                                        <div key={i} className={`flex-shrink-0 border-r border-slate-800/10 h-full ${isWeekend ? 'bg-slate-800/10' : ''}`} style={{ width: '15px' }} />
+                                    );
+                                })}
+                            </div>
+
                             {visibleTarefas.map((t: any, idx: number) => {
                                 const scale = 15;
-                                const barLeft = (Number(t.start) || 0) * scale;
+                                const barLeft = (Number(t.start) - ganttOffsetDays) * scale;
                                 const barWidth = (Number(t.duration) || 0) * scale;
                                 const isCritical = t.critico;
 
                                 return (
-                                    <div key={t.id} className="h-[40px] border-b border-slate-800/30 relative flex items-center group">
+                                    <div key={t.id} className="h-[40px] border-b border-slate-800/30 relative flex items-center group z-10">
                                         {/* Baseline Shadow */}
                                         {showBaseline && (
                                             <div 
-                                                className="absolute h-0.5 bg-blue-500/20 rounded-full bottom-1"
-                                                style={{ left: `${t.baseStart * scale}px`, width: `${t.baseDur * scale}px` }}
+                                                className="absolute h-1 bg-blue-500/20 rounded-full bottom-1"
+                                                style={{ left: `${(t.baseStart - ganttOffsetDays) * scale}px`, width: `${t.baseDur * scale}px` }}
                                             />
                                         )}
                                         {/* Active Bar (Planned/Current) */}
