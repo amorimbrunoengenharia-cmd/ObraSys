@@ -158,7 +158,7 @@ export async function saveRDO(data: any, projectId: number) {
                         title: "Novo RDO Emitido",
                         message: `O RDO do dia ${rdoDate.split('-').reverse().join('/')} para a obra ${project?.name || ''} foi registrado.`,
                         type: "SYSTEM",
-                        read: false,
+                        isRead: false,
                         link: `/projeto/${projectId}`
                     }))
                 });

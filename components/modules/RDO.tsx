@@ -122,7 +122,8 @@ export default function RDO({ proj, feed, config }: any) { // Recebe config
       }));
 
       const dados = { 
-          ...rdo, 
+          ...rdo,
+          data: rdo.data || rdo.date, 
           clima: rdo.clima || { manha: "sol", tarde: "sol", noite: "nublado" }, 
           condicaoCanteiro: rdo.condicaoCanteiro || 'operavel',
           justificativa: rdo.justificativa || '',
@@ -336,15 +337,15 @@ export default function RDO({ proj, feed, config }: any) { // Recebe config
                           </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                          {(rdos || []).filter((r:any)=>r?.data?.includes(searchTerm)).map((r:any)=>(
+                          {(rdos || []).filter((r:any)=> (r?.data || r?.date)?.includes(searchTerm)).map((r:any)=>(
                               <tr key={r.id} onClick={()=>handleOpenRDO(r)} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors group">
                                   <td className="p-5">
                                       <div className="flex items-center gap-3">
                                           <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-600 font-bold">
-                                              {r.data.split('-')[2]}
+                                              {(r.data || r.date || '----').split('-')[2]}
                                           </div>
                                           <div>
-                                              <p className="font-bold text-slate-800 dark:text-slate-200">{r.data}</p>
+                                              <p className="font-bold text-slate-800 dark:text-slate-200">{r.data || r.date}</p>
                                               <p className="text-[11px] text-slate-400 font-medium">Ref. #{r.id}</p>
                                           </div>
                                       </div>
@@ -404,7 +405,7 @@ export default function RDO({ proj, feed, config }: any) { // Recebe config
                     </div>
                     <div className="text-right text-[10px]">
                         <div className="border border-black p-1 px-2 mb-1">RDO Nº: <strong>{selectedRdo.id}</strong></div>
-                        <div className="border border-black p-1 px-2">Data: <strong>{selectedRdo.data}</strong></div>
+                        <div className="border border-black p-1 px-2">Data: <strong>{selectedRdo.data || selectedRdo.date}</strong></div>
                     </div>
                 </div>
                 <div className="border-2 border-black mb-2 p-1 flex text-center"><div className="flex-1 border-r border-black">MANHÃ: <strong>{selectedRdo.clima.manha.toUpperCase()}</strong></div><div className="flex-1 border-r border-black">TARDE: <strong>{selectedRdo.clima.tarde.toUpperCase()}</strong></div><div className="flex-1">NOITE: <strong>{selectedRdo.clima.noite.toUpperCase()}</strong></div></div>
