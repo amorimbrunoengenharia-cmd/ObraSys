@@ -50,6 +50,20 @@ export default function FinanceiroPage() {
         return `${year}-${month}-${day}`;
     };
 
+    const formatDisplayDate = (dateString: any) => {
+        if (!dateString) return '-';
+        try {
+            const d = new Date(dateString);
+            if (isNaN(d.getTime())) return '-';
+            const day = String(d.getUTCDate()).padStart(2, '0');
+            const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+            const year = d.getUTCFullYear();
+            return `${day}/${month}/${year}`;
+        } catch {
+            return '-';
+        }
+    };
+
     // Estados de Dados
     const [tab, setTab] = useState('lancamentos');
     const [records, setRecords] = useState<any[]>([]);
@@ -276,11 +290,11 @@ export default function FinanceiroPage() {
 
     // KPIs calculados
     const kpis = useMemo(() => {
-        const recebidos = records.filter(r => r.tipo === 'ENTRADA' && r.status === 'Recebido').reduce((acc, r) => acc + (r.valorLiquido || 0), 0);
+        const recebidos = records.filter(r => r.tipo === 'ENTRADA' && (r.status === 'Recebido' || r.status === 'Pago')).reduce((acc, r) => acc + (r.valorLiquido || 0), 0);
         const pagos = records.filter(r => r.tipo === 'SAÍDA' && r.status === 'Pago').reduce((acc, r) => acc + (r.valorLiquido || 0), 0);
         
-        const aReceber = records.filter(r => r.tipo === 'ENTRADA' && r.status !== 'Recebido' && r.status !== 'Cancelado').reduce((acc, r) => acc + (r.valorLiquido || 0), 0);
-        const aPagar = records.filter(r => r.tipo === 'SAÍDA' && r.status !== 'Pago' && r.status !== 'Cancelado').reduce((acc, r) => acc + (r.valorLiquido || 0), 0);
+        const aReceber = records.filter(r => r.tipo === 'ENTRADA' && r.status !== 'Recebido' && r.status !== 'Pago' && !r.status?.includes('Cancelado')).reduce((acc, r) => acc + (r.valorLiquido || 0), 0);
+        const aPagar = records.filter(r => r.tipo === 'SAÍDA' && r.status !== 'Pago' && !r.status?.includes('Cancelado')).reduce((acc, r) => acc + (r.valorLiquido || 0), 0);
 
         return { recebidos, pagos, saldo: recebidos - pagos, aReceber, aPagar };
     }, [records]);
@@ -731,7 +745,7 @@ export default function FinanceiroPage() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-xs font-medium">
-                                                    {r.dataVencimento ? new Date(r.dataVencimento).toLocaleDateString('pt-BR') : '-'}
+                                                    {formatDisplayDate(r.dataVencimento)}
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-col">
@@ -1264,7 +1278,7 @@ export default function FinanceiroPage() {
                                             const date = r.status === 'Pago' || r.status === 'Recebido' ? r.dataEfetivacao : r.dataVencimento;
                                             return (
                                                 <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                                    <td className="px-6 py-4 font-bold text-slate-500">{new Date(date).toLocaleDateString('pt-BR')}</td>
+                                                    <td className="px-6 py-4 font-bold text-slate-500">{formatDisplayDate(date)}</td>
                                                     <td className="px-6 py-4">
                                                         <span className={`px-2 py-1 rounded-md text-[10px] font-black ${r.tipo === 'ENTRADA' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
                                                             {r.tipo}
