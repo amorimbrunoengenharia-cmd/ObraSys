@@ -343,7 +343,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
   // --- RENDERIZADOR DE LINHAS DE CONEXÃO (GANTT) ---
   const renderGanttLines = () => {
     const scale = 15; 
-    const rowHeight = 32; 
+    const rowHeight = 40; 
     
     return (
         <svg className="absolute inset-0 pointer-events-none w-full h-full opacity-30">
@@ -467,9 +467,9 @@ export default function Cronograma({ proj, onRefresh }: any) {
                                 const varDays = bEnd > 0 ? cEnd - bEnd : 0;
                                 
                                 return (
-                                    <tr key={t.id} onClick={() => handleEdit(t)} className={`group hover:bg-blue-600/5 transition-colors cursor-pointer border-b border-slate-800/30 ${isSummary ? 'bg-slate-900/40 font-bold text-white' : 'text-slate-400'}`}>
-                                        <td className="px-3 py-2.5 border-r border-slate-800/50 text-slate-500 font-mono">{t.wbs}</td>
-                                        <td className="px-4 py-2.5 border-r border-slate-800/50">
+                                    <tr key={t.id} onClick={() => handleEdit(t)} className={`group hover:bg-blue-600/5 transition-colors cursor-pointer border-b border-slate-800/30 h-[40px] ${isSummary ? 'bg-slate-900/40 font-bold text-white' : 'text-slate-400'}`}>
+                                        <td className="px-3 border-r border-slate-800/50 text-slate-500 font-mono">{t.wbs}</td>
+                                        <td className="px-4 border-r border-slate-800/50">
                                             <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 20}px` }}>
                                                 {isSummary ? (
                                                     <button onClick={(e) => { e.stopPropagation(); toggleCollapse(t.id); }} className={`p-1 rounded transition-colors ${isCollapsed ? 'text-blue-500 bg-blue-500/10' : 'text-slate-500 hover:bg-slate-700'}`}>
@@ -479,13 +479,13 @@ export default function Cronograma({ proj, onRefresh }: any) {
                                                 <span className={`truncate ${isCritical ? 'text-red-400' : ''}`}>{t.name}</span>
                                             </div>
                                         </td>
-                                        <td className="px-2 py-2.5 border-r border-slate-800/50 text-center">
+                                        <td className="px-2 border-r border-slate-800/50 text-center">
                                             <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase border ${t.statusColor}`}>
                                                 {t.statusLabel}
                                             </span>
                                         </td>
-                                        <td className="px-2 py-2.5 border-r border-slate-800/50 text-center text-blue-500 font-bold">{t.predecessors || '-'}</td>
-                                        <td className="px-2 py-2.5 border-r border-slate-800/50 text-center">
+                                        <td className="px-2  border-r border-slate-800/50 text-center text-blue-500 font-bold">{t.predecessors || '-'}</td>
+                                        <td className="px-2  border-r border-slate-800/50 text-center">
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); handleActualUpdate(t.id, 'isMilestone', !t.isMilestone); onRefresh?.(); }}
                                                 className={`p-1 rounded-md border transition-all ${t.isMilestone ? 'bg-amber-500 border-amber-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-500'}`}
@@ -494,19 +494,19 @@ export default function Cronograma({ proj, onRefresh }: any) {
                                                 <Target size={12}/>
                                             </button>
                                         </td>
-                                        <td className="px-2 py-2.5 border-r border-slate-800/50 text-center">{t.start}</td>
-                                        <td className="px-2 py-2.5 border-r border-slate-800/50 text-center font-bold">{cEnd}</td>
+                                        <td className="px-2  border-r border-slate-800/50 text-center">{t.start}</td>
+                                        <td className="px-2  border-r border-slate-800/50 text-center font-bold">{cEnd}</td>
                                         
                                         {showBaseline && (
                                             <>
-                                                <td className="px-2 py-2.5 border-r border-slate-800/50 text-center bg-blue-900/5 text-blue-400/60 font-mono">{bEnd || '-'}</td>
-                                                <td className={`px-2 py-2.5 border-r border-slate-800/50 text-center bg-blue-900/5 font-black ${varDays > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                                                <td className="px-2  border-r border-slate-800/50 text-center bg-blue-900/5 text-blue-400/60 font-mono">{bEnd || '-'}</td>
+                                                <td className={`px-2  border-r border-slate-800/50 text-center bg-blue-900/5 font-black ${varDays > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
                                                     {varDays > 0 ? `+${varDays}` : (varDays < 0 ? varDays : '0')}
                                                 </td>
                                             </>
                                         )}
 
-                                        <td className="px-2 py-2.5 border-r border-slate-800/50 bg-emerald-900/5">
+                                        <td className="px-2  border-r border-slate-800/50 bg-emerald-900/5">
                                             <input 
                                                 type="date" 
                                                 value={formatDateForInput(t.actualStart)} 
@@ -515,7 +515,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
                                                 className="bg-transparent text-[8px] text-emerald-500 outline-none w-full font-bold"
                                             />
                                         </td>
-                                        <td className="px-2 py-2.5 border-r border-slate-800/50 bg-emerald-900/5">
+                                        <td className="px-2  border-r border-slate-800/50 bg-emerald-900/5">
                                             <input 
                                                 type="date" 
                                                 value={formatDateForInput(t.actualFinish)} 
@@ -525,7 +525,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
                                             />
                                         </td>
 
-                                        <td className="px-4 py-2.5 border-r border-slate-800/50">
+                                        <td className="px-4  border-r border-slate-800/50">
                                             <div className="flex items-center gap-2">
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); handleToggleComplete(t); }}
@@ -541,7 +541,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-2 py-2.5 text-center">
+                                        <td className="px-2  text-center">
                                             <div className="flex -space-x-1 justify-center overflow-hidden">
                                                 {assignees.slice(0,3).map((u: any) => (
                                                     <div key={u.id} className="w-6 h-6 rounded-full bg-slate-700 border-2 border-[#0B1121] flex items-center justify-center text-[8px] font-black text-white uppercase" title={u.name}>
@@ -594,7 +594,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
                                 const isCritical = t.critico;
 
                                 return (
-                                    <div key={t.id} className="h-8 border-b border-slate-800/30 relative flex items-center group">
+                                    <div key={t.id} className="h-[40px] border-b border-slate-800/30 relative flex items-center group">
                                         {/* Baseline Shadow */}
                                         {showBaseline && (
                                             <div 
