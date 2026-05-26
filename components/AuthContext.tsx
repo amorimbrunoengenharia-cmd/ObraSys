@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface User {
+  id: number;
   email: string;
   name: string;
   role: string;
@@ -26,10 +27,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (savedUser) {
       try {
         const parsedUser = JSON.parse(savedUser);
-        setUser(parsedUser);
-        // Recriar os cookies para garantir que o Servidor saiba que a sessão ainda existe
-        document.cookie = `userRole=${encodeURIComponent(parsedUser.role)}; path=/`;
-        document.cookie = `userEmail=${encodeURIComponent(parsedUser.email)}; path=/`;
+        if (!parsedUser.id) {
+            // Sessão antiga sem ID: força relogin
+            localStorage.removeItem('user');
+            document.cookie = "userRole=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+            document.cookie = "userEmail=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+            setUser(null);
+        } else {
+            setUser(parsedUser);
+            // Recriar os cookies para garantir que o Servidor saiba que a sessão ainda existe
+            document.cookie = `userRole=${encodeURIComponent(parsedUser.role)}; path=/`;
+            document.cookie = `userEmail=${encodeURIComponent(parsedUser.email)}; path=/`;
+        }
       } catch (error) {
         console.error('Erro ao parsear usuário salvo:', error);
         localStorage.removeItem('user');
