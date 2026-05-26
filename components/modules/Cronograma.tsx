@@ -9,6 +9,7 @@ import { getStaff } from '../../app/actions/user';
 import { importMSProjectXML } from '../../app/actions/import';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calculateSCurve } from '../../lib/utils/sCurve';
+// @ts-ignore
 import domtoimage from 'dom-to-image-more';
 import jsPDF from 'jspdf';
 
