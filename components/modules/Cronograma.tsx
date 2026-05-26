@@ -407,54 +407,53 @@ export default function Cronograma({ proj, onRefresh }: any) {
       
       if (!container) return;
 
-      // Criar clone para não afetar o DOM original
-      const clone = container.cloneNode(true) as HTMLElement;
-      clone.style.position = 'absolute';
-      clone.style.left = '-9999px';
-      clone.style.top = '-9999px';
-      clone.style.width = 'max-content';
-      clone.style.height = 'max-content';
-      clone.style.overflow = 'visible';
-      clone.style.display = 'flex';
+      const origContainerStyle = container.style.cssText;
+      let origTableStyle = '';
+      let origGanttStyle = '';
+      const hiddenElements: HTMLElement[] = [];
+
+      // Forçar expansão no DOM original
+      container.style.width = 'max-content';
+      container.style.height = 'max-content';
+      container.style.overflow = 'visible';
+      container.style.display = 'flex';
       
-      const tableDivClone = clone.querySelector('#table-scroll-container') as HTMLElement;
-      const ganttDivClone = clone.querySelector('#gantt-scroll-container') as HTMLElement;
+      const tableDiv = document.getElementById('table-scroll-container');
+      const ganttDiv = document.getElementById('gantt-scroll-container');
       
-      if (tableDivClone) {
-          tableDivClone.style.overflow = 'visible';
-          tableDivClone.style.width = 'max-content';
-          tableDivClone.style.height = 'max-content';
+      if (tableDiv) {
+          origTableStyle = tableDiv.style.cssText;
+          tableDiv.style.overflow = 'visible';
+          tableDiv.style.width = 'max-content';
+          tableDiv.style.height = 'max-content';
       }
 
-      if (ganttDivClone) {
-          ganttDivClone.style.overflow = 'visible';
-          ganttDivClone.style.width = 'max-content';
-          ganttDivClone.style.height = 'max-content';
-          ganttDivClone.style.flex = 'none';
+      if (ganttDiv) {
+          origGanttStyle = ganttDiv.style.cssText;
+          ganttDiv.style.overflow = 'visible';
+          ganttDiv.style.width = 'max-content';
+          ganttDiv.style.height = 'max-content';
+          ganttDiv.style.flex = 'none';
       }
 
-      // Ocultar SVGs de setas no clone para evitar crash do html2canvas com SVG markers
-      const svgs = clone.querySelectorAll('svg');
+      // Ocultar SVGs de setas no DOM para evitar crash do html2canvas com SVG markers
+      const svgs = container.querySelectorAll('svg');
       svgs.forEach(svg => {
          if (svg.innerHTML.includes('marker')) {
+             hiddenElements.push(svg);
              svg.style.display = 'none';
          }
       });
 
-      document.body.appendChild(clone);
-
-      // Pequeno delay para o navegador renderizar o clone
+      // Pequeno delay para o navegador aplicar
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      const canvas = await html2canvas(clone, {
+      const canvas = await html2canvas(container, {
         scale: 2, 
         useCORS: true,
         backgroundColor: '#0B1121',
         logging: false
       });
-
-      // Limpar clone
-      document.body.removeChild(clone);
 
       const imgData = canvas.toDataURL('image/png');
       
@@ -485,11 +484,45 @@ export default function Cronograma({ proj, onRefresh }: any) {
       pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
       pdf.save(`Cronograma_${proj?.name || 'Projeto'}.pdf`);
       
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("Erro ao gerar PDF.");
+      alert("Erro ao gerar PDF: " + (e?.message || e));
     } finally {
       setIsExportingPDF(false);
+      
+      // Restaurar DOM
+      const container = document.getElementById("cronograma-export-container");
+      const tableDiv = document.getElementById("table-scroll-container");
+      const ganttDiv = document.getElementById("gantt-scroll-container");
+      
+      if (container && (container as any)._origStyle !== undefined === false) { // We didn't save it outside, but we can do a trick.
+         // Actually, wait, let's just use CSS classes to reset inline styles
+         container.style.width = '';
+         container.style.height = '';
+         container.style.overflow = '';
+         container.style.display = '';
+      }
+      
+      if (tableDiv) {
+         tableDiv.style.overflow = '';
+         tableDiv.style.width = '';
+         tableDiv.style.height = '';
+      }
+      
+      if (ganttDiv) {
+         ganttDiv.style.overflow = '';
+         ganttDiv.style.width = '';
+         ganttDiv.style.height = '';
+         ganttDiv.style.flex = '';
+      }
+      
+      // Show SVGs again
+      const svgs = document.querySelectorAll('#cronograma-export-container svg');
+      svgs.forEach((svg: any) => {
+         if (svg.style.display === 'none') {
+             svg.style.display = '';
+         }
+      });
     }
   };
 

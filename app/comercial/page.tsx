@@ -765,7 +765,7 @@ export default function ComercialPage() {
                                             <p className="text-xs text-blue-500 mt-2 font-semibold">
                                                 ✅ Um contrato já foi anexado. 
                                                 <a 
-                                                    href={existingContractUrl.includes('/image/upload/') ? existingContractUrl.replace('/image/upload/', '/image/upload/fl_attachment/') : existingContractUrl} 
+                                                    href={`/api/contract-download?url=${encodeURIComponent(existingContractUrl.replace('/image/upload/fl_attachment/', '/image/upload/'))}`} 
                                                     target="_blank" 
                                                     rel="noreferrer" 
                                                     className="underline hover:text-blue-600 ml-1"
