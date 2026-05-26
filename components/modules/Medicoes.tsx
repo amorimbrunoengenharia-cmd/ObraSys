@@ -110,12 +110,18 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
   };
 
   const handleSaveBM = async () => {
-      const bruto = novaMedicao.itens.reduce((acc:number, it:any) => acc + (it.total * ((it.pctAtual || 0) / 100)), 0);
+      const bruto = (novaMedicao.itens || []).reduce((acc:number, it:any) => {
+          if (!it) return acc;
+          const total = it.total || (it.qtd * it.unitario) || 0;
+          return acc + (total * ((it.pctAtual || 0) / 100));
+      }, 0);
       if (bruto <= 0) return alert("Adicione valores à medição.");
       
       // Validação de estouro de 100%
-      const hasOverflow = novaMedicao.itens.some((it: any) => {
-          const pctAnterior = (it.medido / it.total) * 100;
+      const hasOverflow = (novaMedicao.itens || []).some((it: any) => {
+          if (!it) return false;
+          const total = it.total || (it.qtd * it.unitario) || 0;
+          const pctAnterior = total > 0 ? ((it.medido || 0) / total) * 100 : 0;
           return (pctAnterior + (it.pctAtual || 0)) > 100.01; // Margem de erro para floats
       });
 
@@ -128,10 +134,13 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
       const inss = bruto * (Number(novaMedicao.inss) / 100);
       const liq = bruto - caucao - iss - inss;
       
-      const itemsBreakdown = (novaMedicao.itens || []).map((it: any) => ({
-          itemId: it.id,
-          valor: it.total * ((it.pctAtual || 0) / 100)
-      })).filter((ib: any) => ib.valor > 0);
+      const itemsBreakdown = (novaMedicao.itens || []).filter(Boolean).map((it: any) => {
+          const total = it.total || (it.qtd * it.unitario) || 0;
+          return {
+              itemId: it.id,
+              valor: total * ((it.pctAtual || 0) / 100)
+          };
+      }).filter((ib: any) => ib.valor > 0);
       
       setIsSaving(true);
       const res = await createMeasurement(selectedContrato.id, {
@@ -1099,11 +1108,19 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center opacity-80">
                                     <span className="text-xs font-bold">Valor Bruto</span>
-                                    <span className="font-black">{formatter.format(novaMedicao.itens.reduce((acc:number, it:any)=>acc+(it.total * ((it.pctAtual||0)/100)), 0))}</span>
+                                    <span className="font-black">{formatter.format((novaMedicao.itens || []).reduce((acc:number, it:any)=>{
+                                                        if(!it) return acc;
+                                                        const t = it.total || (it.qtd * it.unitario) || 0;
+                                                        return acc+(t * ((it.pctAtual||0)/100));
+                                                    }, 0))}</span>
                                 </div>
                                 <div className="flex justify-between items-center opacity-80">
                                     <span className="text-xs font-bold">Caução Retida ({selectedContrato.retencao}%)</span>
-                                    <span className="font-black text-amber-300">-{formatter.format(novaMedicao.itens.reduce((acc:number, it:any)=>acc+(it.total * ((it.pctAtual||0)/100)), 0) * (selectedContrato.retencao/100))}</span>
+                                    <span className="font-black text-amber-300">-{formatter.format((novaMedicao.itens || []).reduce((acc:number, it:any)=>{
+                                                        if(!it) return acc;
+                                                        const t = it.total || (it.qtd * it.unitario) || 0;
+                                                        return acc+(t * ((it.pctAtual||0)/100));
+                                                    }, 0) * (selectedContrato.retencao/100))}</span>
                                 </div>
                                 
                                 <div className="pt-4 border-t border-white/10 space-y-3">
@@ -1120,9 +1137,11 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
                                 <div className="pt-6 mt-6 border-t-2 border-white/20">
                                     <p className="text-[10px] font-black opacity-60 uppercase mb-1">Valor Líquido a Pagar</p>
                                     <p className="text-4xl font-black">
-                                        {formatter.format(
-                                            novaMedicao.itens.reduce((acc:number, it:any)=>acc+(it.total * ((it.pctAtual||0)/100)), 0) * (1 - (selectedContrato.retencao/100) - (novaMedicao.iss/100) - (novaMedicao.inss/100))
-                                        )}
+                                        {formatter.format((novaMedicao.itens || []).reduce((acc:number, it:any)=>{
+                                                        if(!it) return acc;
+                                                        const t = it.total || (it.qtd * it.unitario) || 0;
+                                                        return acc+(t * ((it.pctAtual||0)/100));
+                                                    }, 0) * (1 - (selectedContrato.retencao/100) - (novaMedicao.iss/100) - (novaMedicao.inss/100)))}
                                     </p>
                                 </div>
                             </div>
