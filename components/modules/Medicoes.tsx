@@ -46,6 +46,9 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
     inss: 0,
     itens: [] 
   });
+  const [isTaskSelectionModalOpen, setIsTaskSelectionModalOpen] = useState(false);
+  const [availableTasksToImport, setAvailableTasksToImport] = useState<any[]>([]);
+  const [selectedTaskIdsToImport, setSelectedTaskIdsToImport] = useState<number[]>([]);
   const [novoAditivo, setNovoAditivo] = useState({ valor: 0, motivo: "" });
   const [importedCronogramaItems, setImportedCronogramaItems] = useState<any[]>([]);
   const [availableSuppliers, setAvailableSuppliers] = useState<any[]>([]);
@@ -185,7 +188,7 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
           return;
       }
       
-      // CASO 2: Contrato sem itens — importar tarefas do cronograma diretamente
+      // CASO 2: Contrato sem itens — selecionar tarefas do cronograma
       // Ordenar por WBS natural
       const sortedTasks = [...tasks].sort((a: any, b: any) => {
           const p1 = (a.wbs || '').split('.').map(Number);
@@ -204,8 +207,16 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
           );
       });
       
-      // Criar itens temporários a partir das tarefas do cronograma
-      const cronogramaItens = leafTasks.map((t: any) => ({
+      setAvailableTasksToImport(leafTasks);
+      setSelectedTaskIdsToImport([]); // Reset selection
+      setIsTaskSelectionModalOpen(true);
+  };
+
+  const handleConfirmTaskSelection = () => {
+      const selectedTasks = availableTasksToImport.filter(t => selectedTaskIdsToImport.includes(t.id));
+      if (selectedTasks.length === 0) return alert("Selecione ao menos uma tarefa para importar.");
+
+      const cronogramaItens = selectedTasks.map((t: any) => ({
           id: t.id,
           desc: `${t.wbs} - ${t.name || t.title}`,
           unidade: 'vb',
@@ -218,11 +229,10 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
       }));
       
       setNovaMedicao({ ...novaMedicao, itens: cronogramaItens });
-      
-      // Também precisamos mostrar esses itens na tabela — vamos sobrescrever os items do contrato temporariamente
       setImportedCronogramaItems(cronogramaItens);
+      setIsTaskSelectionModalOpen(false);
       
-      alert(`✅ ${cronogramaItens.length} etapas importadas do Cronograma Master!\n\nOs avanços físicos (%) foram preenchidos automaticamente a partir do progresso de cada tarefa.`);
+      alert(`✅ ${cronogramaItens.length} etapas importadas do Cronograma Master!\n\nOs avanços físicos (%) foram preenchidos automaticamente.`);
   };
 
   const handleSyncCronograma = async () => {
@@ -541,6 +551,47 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
 
                     <button onClick={handleAddItem} disabled={isSaving} className="w-full py-4 bg-emerald-600 text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-xl hover:opacity-90 transition-all">
                         {isSaving ? "Gravando Item..." : "Adicionar à Planilha"}
+                    </button>
+                </div>
+            </Modal>
+        )}
+
+        {isTaskSelectionModalOpen && (
+            <Modal title="Selecionar Etapas do Cronograma" onClose={()=>setIsTaskSelectionModalOpen(false)}>
+                <div className="space-y-4 p-2 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                    <p className="text-xs text-slate-500 font-bold mb-4">
+                        Selecione as etapas do Cronograma Master que deseja importar para este Boletim de Medição:
+                    </p>
+                    <div className="space-y-2">
+                        {availableTasksToImport.map(t => (
+                            <label key={t.id} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border cursor-pointer hover:border-blue-500 transition-all group">
+                                <input 
+                                    type="checkbox" 
+                                    className="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                    checked={selectedTaskIdsToImport.includes(t.id)}
+                                    onChange={(e) => {
+                                        if (e.target.checked) {
+                                            setSelectedTaskIdsToImport([...selectedTaskIdsToImport, t.id]);
+                                        } else {
+                                            setSelectedTaskIdsToImport(selectedTaskIdsToImport.filter(id => id !== t.id));
+                                        }
+                                    }}
+                                />
+                                <div>
+                                    <span className="font-black text-sm text-slate-800 dark:text-white block group-hover:text-blue-500 transition-colors">{t.wbs} - {t.name || t.title}</span>
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase">{t.progress || 0}% de Avanço Físico</span>
+                                </div>
+                            </label>
+                        ))}
+                    </div>
+                    {availableTasksToImport.length === 0 && (
+                        <p className="text-center text-xs text-slate-400 py-8 uppercase font-bold">Nenhuma tarefa disponível.</p>
+                    )}
+                    <button 
+                        onClick={handleConfirmTaskSelection} 
+                        className="w-full mt-4 py-4 bg-blue-600 text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-xl hover:opacity-90 transition-all sticky bottom-0"
+                    >
+                        Importar {selectedTaskIdsToImport.length} Etapa(s) Selecionada(s)
                     </button>
                 </div>
             </Modal>
@@ -919,9 +970,10 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
                                         <th className="px-4 py-4 text-right">% Ant.</th>
                                         <th className="px-4 py-4 text-right w-32">% no Período</th>
                                         <th className="px-4 py-4 text-right">Valor Período</th>
+                                        <th className="px-4 py-4 w-10"></th>
                                     </tr>
                                     <tr className="bg-blue-50/50 dark:bg-blue-900/10 border-b dark:border-slate-800">
-                                        <td colSpan={5} className="px-4 py-2">
+                                        <td colSpan={6} className="px-4 py-2">
                                             <div className="flex justify-end">
                                                 <button 
                                                     onClick={handleImportAdvances}
@@ -973,6 +1025,33 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
                                                 </td>
                                                 <td className="px-4 py-6 text-right font-black text-slate-800 dark:text-white">
                                                     {formatter.format(valorPeriodo)}
+                                                </td>
+                                                <td className="px-4 py-6 text-right">
+                                                    <button 
+                                                        onClick={() => {
+                                                            if (importedCronogramaItems.length > 0) {
+                                                                const filtered = importedCronogramaItems.filter(item => item.id !== it.id);
+                                                                setImportedCronogramaItems(filtered);
+                                                                setNovaMedicao({...novaMedicao, itens: filtered});
+                                                            } else {
+                                                                // Se for item do contrato, apenas zera do novaMedicao para não medir, ou remove do array temporário se quiser esconder
+                                                                const newItens = [...novaMedicao.itens];
+                                                                newItens.splice(idx, 1); // Isso pode dessincronizar os indíces se não cuidarmos,
+                                                                // Mas `selectedContrato.items` é a fonte. Se o usuário apagar um item,
+                                                                // vamos apenas setar o pctAtual dele pra 0 e esconder na UI (ou simplesmente dar splice em um state local).
+                                                                // Para simplificar, quando clica excluir no BM com itens fixos, zeramos a pct.
+                                                                if (newItens[idx]) {
+                                                                    newItens[idx].pctAtual = 0;
+                                                                    setNovaMedicao({...novaMedicao, itens: newItens});
+                                                                }
+                                                                alert("Item zerado desta medição. Para excluí-lo definitivamente do contrato, use a aba Planilha de Itens.");
+                                                            }
+                                                        }}
+                                                        className="text-slate-300 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                                        title="Remover deste BM"
+                                                    >
+                                                        <Trash2 size={16}/>
+                                                    </button>
                                                 </td>
                                             </tr>
                                         );
