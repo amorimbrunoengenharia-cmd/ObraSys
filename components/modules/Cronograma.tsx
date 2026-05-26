@@ -165,14 +165,35 @@ export default function Cronograma({ proj, onRefresh }: any) {
     return calculateSCurve(tarefas, granularity);
   }, [tarefas, granularity]);
 
-  // RESUMO DE DIRETORIA
+  // RESUMO DE DIRETORIA (SPI Atualizado)
   const performance = useMemo(() => {
-    const totalPlanned = tarefas.reduce((acc, t) => acc + (t.baseDur || t.duration), 0);
-    const totalActual = tarefas.reduce((acc, t) => acc + (t.duration * (t.progress / 100)), 0);
-    const delay = tarefas.some(t => (t.start + t.duration) > (t.baseStart + t.baseDur)) ? 'ATRASADO' : 'NO PRAZO';
-    const cpi = (totalActual / (totalPlanned || 1)).toFixed(2);
-    return { delay, cpi };
-  }, [tarefas]);
+    const baseDate = dynamicBaseDate?.getTime() || Date.now();
+    const todayOffset = Math.max(0, Math.floor((new Date().setHours(0,0,0,0) - baseDate) / 86400000));
+    
+    let pv = 0;
+    let ev = 0;
+    
+    const activities = tarefas.filter(t => !t.isSummary);
+    activities.forEach(t => {
+        const weight = t.baseDur !== undefined ? t.baseDur : (t.duration || 1);
+        const bStart = t.baseStart !== undefined ? t.baseStart : t.start;
+        const bDur = t.baseDur !== undefined ? t.baseDur : t.duration;
+        
+        // PV (Planned Value) até a data de hoje
+        if (todayOffset >= bStart + bDur) pv += weight;
+        else if (todayOffset > bStart && bDur > 0) pv += weight * ((todayOffset - bStart) / bDur);
+        
+        // EV (Earned Value)
+        ev += weight * ((Number(t.progress) || 0) / 100);
+    });
+    
+    const spi = pv > 0 ? (ev / pv).toFixed(2) : "1.00";
+    let status = 'NO PRAZO';
+    if (Number(spi) < 0.95) status = 'ATRASADO';
+    else if (Number(spi) > 1.05) status = 'ADIANTADO';
+    
+    return { spi, status, ev, pv };
+  }, [tarefas, dynamicBaseDate]);
 
   // FILTRAGEM DE TAREFAS RECOLHIDAS
   const visibleTarefas = useMemo(() => {
@@ -578,7 +599,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
                                     const starts = visibleTarefas.map((t: any) => Number(t.start) || 0);
                                     const minStartOffset = starts.length > 0 ? Math.max(0, Math.min(...starts) - 2) : 0;
                                     const date = dynamicBaseDate && !isNaN(dynamicBaseDate.getTime()) ? new Date(dynamicBaseDate.getTime() + (minStartOffset + i) * 24 * 60 * 60 * 1000) : new Date();
-                                    const monthYear = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                                    const monthYear = date.toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase();
                                     
                                     const lastGroup = acc[acc.length - 1];
                                     if (lastGroup && lastGroup.label === monthYear) {
@@ -828,9 +849,12 @@ export default function Cronograma({ proj, onRefresh }: any) {
                         </div>
                     </div>
                     <div className="bg-[#162032] p-6 rounded-2xl border border-slate-800 flex flex-col justify-center text-center space-y-2">
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Resumo de Desempenho</p>
-                        <h5 className={`text-4xl font-black ${performance.delay === 'ATRASADO' ? 'text-red-500' : 'text-emerald-500'}`}>{performance.delay}</h5>
-                        <p className="text-xs text-slate-400 italic">"O projeto apresenta um CPI de {performance.cpi}, indicando {(Number(performance.cpi) < 1) ? 'atraso em relação à base' : 'execução dentro do esperado'}."</p>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Resumo de Desempenho (SPI)</p>
+                        <h5 className={`text-4xl font-black ${performance.status === 'ATRASADO' ? 'text-red-500' : (performance.status === 'ADIANTADO' ? 'text-blue-500' : 'text-emerald-500')}`}>{performance.status}</h5>
+                        <p className="text-xs text-slate-400 italic mt-2 px-4">
+                            "O projeto apresenta um <strong>Índice de Desempenho de Prazo (SPI)</strong> de <strong className="text-white">{performance.spi}</strong>.<br/> 
+                            <span className="text-[10px] text-slate-500 mt-1 block">Um valor menor que 1.0 indica atraso físico em relação à Linha de Base.</span>
+                        </p>
                     </div>
                 </div>
             </div>

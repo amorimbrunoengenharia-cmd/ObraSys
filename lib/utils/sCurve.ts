@@ -18,7 +18,20 @@ export function calculateSCurve(tarefas: any[], granularity: Granularity = 'week
   const hasBaseline = tarefas.some(t => t.baseStart !== null && t.baseStart !== undefined);
   if (!hasBaseline) return [];
 
-  const maxDay = Math.max(...tarefas.map(t => (t.start + t.duration) || 10), 30);
+  const activities = tarefas.filter(t => !t.isSummary);
+  if (activities.length === 0) return [];
+
+  // Encontrar o início e o fim real do projeto (considerando base e atual)
+  const minStart = Math.max(0, Math.min(...activities.map(t => Math.min(
+      t.baseStart !== undefined ? t.baseStart : t.start, 
+      t.start || 0
+  ))));
+  
+  const maxDay = Math.max(...activities.map(t => Math.max(
+      (t.baseStart !== undefined ? t.baseStart : t.start) + (t.baseDur !== undefined ? t.baseDur : t.duration), 
+      (t.start || 0) + (t.duration || 0)
+  )));
+
   const data: SCurvePoint[] = [];
   
   let step = 7; 
@@ -28,23 +41,26 @@ export function calculateSCurve(tarefas: any[], granularity: Granularity = 'week
   if (granularity === 'monthly') step = 30;
   if (granularity === 'yearly') step = 365;
 
-  const activities = tarefas.filter(t => !t.isSummary);
-  const totalWeight = activities.length || 1;
+  // Peso total agora é baseado na duração planejada (Valor Agregado Real)
+  const totalWeight = activities.reduce((acc, t) => acc + (t.baseDur !== undefined ? t.baseDur : (t.duration || 1)), 0) || 1;
 
-  for (let day = 0; day <= maxDay; day += step) {
+  let periodCounter = 0;
+  for (let day = minStart; day <= maxDay + step; day += step) {
     let planned = 0;
     let actual = 0;
 
     activities.forEach(t => {
+        const weight = t.baseDur !== undefined ? t.baseDur : (t.duration || 1);
+
         // Planejado (Baseado na Baseline)
         const bStart = t.baseStart !== undefined ? t.baseStart : t.start;
         const bDur = t.baseDur !== undefined ? t.baseDur : t.duration;
         const bEnd = bStart + bDur;
         
         if (day >= bEnd) {
-          planned += 1;
+          planned += weight;
         } else if (day > bStart && bDur > 0) {
-          planned += (day - bStart) / bDur;
+          planned += weight * ((day - bStart) / bDur);
         }
 
         // Realizado (Baseado no progresso atual e datas reais)
@@ -54,24 +70,28 @@ export function calculateSCurve(tarefas: any[], granularity: Granularity = 'week
         const tEnd = tStart + tDur;
         
         if (day >= tEnd) {
-          actual += progressValue;
+          actual += weight * progressValue;
         } else if (day > tStart) {
-          actual += progressValue * ((day - tStart) / tDur);
+          // O avanço real no tempo decorrido, limitado pelo progresso reportado
+          const timeProgress = (day - tStart) / tDur;
+          actual += weight * Math.min(progressValue, timeProgress);
         }
     });
 
     let pointName = "";
-    if (granularity === 'daily') pointName = `Dia ${day}`;
-    else if (granularity === 'weekly') pointName = `Sem. ${Math.floor(day/7)}`;
-    else if (granularity === 'biweekly') pointName = `Quinz. ${Math.floor(day/15)}`;
-    else if (granularity === 'monthly') pointName = `Mês ${Math.floor(day/30)}`;
-    else pointName = `Ano ${Math.floor(day/365)}`;
+    if (granularity === 'daily') pointName = `Dia ${periodCounter}`;
+    else if (granularity === 'weekly') pointName = `Sem. ${periodCounter}`;
+    else if (granularity === 'biweekly') pointName = `Quinz. ${periodCounter}`;
+    else if (granularity === 'monthly') pointName = `Mês ${periodCounter}`;
+    else pointName = `Ano ${periodCounter}`;
 
     data.push({
       name: pointName,
       planejado: Math.min(100, Math.round((planned / totalWeight) * 100)),
       realizado: Math.min(100, Math.round((actual / totalWeight) * 100))
     });
+    
+    periodCounter++;
   }
 
   return data;
