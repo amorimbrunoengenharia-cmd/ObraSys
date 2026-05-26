@@ -135,11 +135,12 @@ export default function Financeiro({ proj }: any) {
       const d = f.dataVencimento || f.dataCompetencia || f.createdAt;
       if (!d) continue;
       
-      // Criar data baseada no fuso horário local para não haver deslocamento de dia/mês
-      const dateParts = d.split('-');
       let date = new Date(d);
-      if (dateParts.length === 3) {
-          date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2].split('T')[0]));
+      if (typeof d === 'string' && d.includes('-')) {
+          const dateParts = d.split('T')[0].split('-');
+          if (dateParts.length === 3) {
+              date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+          }
       }
       
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
