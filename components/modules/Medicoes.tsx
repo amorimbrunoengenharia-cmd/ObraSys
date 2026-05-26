@@ -16,7 +16,7 @@ import MeasurementPDF from './medicoes_components/MeasurementPDF';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
-export default function Medicoes({ proj, onRefresh, onApprove }: any) {
+export default function Medicoes({ proj, onRefresh, onApprove, showToast }: any) {
   const [viewMode, setViewMode] = useState<'lista' | 'nova' | 'detalhe' | 'contrato_detalhe'>('lista');
   const [selectedContratoId, setSelectedContratoId] = useState<number | null>(null);
   const [selectedBM, setSelectedBM] = useState<any>(null);
@@ -156,12 +156,14 @@ export default function Medicoes({ proj, onRefresh, onApprove }: any) {
       setIsSaving(false);
       
       if (res.success) {
-          alert("Medição (BM) salva com sucesso!");
           if (onRefresh) onRefresh();
+          window.dispatchEvent(new Event('refresh_notifications'));
+          if (showToast) showToast("Aprovação Pendente", "Medição criada com sucesso e aguardando aprovação.", "info");
+          setNovaMedicao({ ref: '', periodo: '', iss: 0, inss: 0, retencao: selectedContrato?.retencao || 0, itens: [] });
+          setImportedCronogramaItems([]);
           setViewMode('lista');
-          setSelectedContratoId(null); // Limpa para forçar atualização se necessário
       } else {
-          alert("Erro ao salvar medição: " + res.error);
+          if (showToast) showToast("Erro", "Erro ao salvar medição: " + res.error, "error");
       }
   };
 

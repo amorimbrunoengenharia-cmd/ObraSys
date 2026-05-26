@@ -20,6 +20,12 @@ export default function NotificationBell() {
                 checkFinancialDeadlines();
             }
         }
+        
+        const handleRefresh = () => {
+            if (user?.id) fetchNotifications();
+        };
+        window.addEventListener('refresh_notifications', handleRefresh);
+        return () => window.removeEventListener('refresh_notifications', handleRefresh);
     }, [user]);
 
     // Fechar dropdown ao clicar fora

@@ -118,10 +118,18 @@ export default function ProjectPage() {
     return () => clearInterval(interval);
   }, [proj]);
 
+  const handleShowToast = (title: string, msg: string, type: 'success' | 'alert' | 'info' = 'success') => {
+      setNotifications(prev => [{ id: Date.now(), title, msg, type, time: "Agora" }, ...prev]);
+      setShowNotif(true);
+      setTimeout(() => setShowNotif(false), 3000);
+  };
+
   const handleApproveMedicao = async (medicaoId: number) => {
       const res = await approveMeasurement(medicaoId);
       if (res.success) {
           refreshData();
+          window.dispatchEvent(new Event('refresh_notifications'));
+          handleShowToast("Sucesso", "BM aprovado com sucesso!", "success");
       } else {
           alert("Erro ao aprovar BM: " + res.error);
       }
@@ -185,7 +193,7 @@ export default function ProjectPage() {
             {activeTab === 'visao-geral' && canAccess('visao-geral') && <VisaoGeral proj={proj} feed={feed} localPosts={localPosts} setActiveTab={setActiveTab}/>}
             {activeTab === 'portal-cliente' && canAccess('portal-cliente') && <PortalCliente proj={proj} localPosts={localPosts} setLocalPosts={setLocalPosts} setActiveTab={setActiveTab}/>}
             {activeTab === 'financeiro' && canAccess('financeiro') && <Financeiro proj={proj}/>}
-            {activeTab === 'medicoes' && canAccess('medicoes') && <Medicoes proj={proj} onRefresh={refreshData} onApprove={handleApproveMedicao}/>}
+            {activeTab === 'medicoes' && canAccess('medicoes') && <Medicoes proj={proj} onRefresh={refreshData} onApprove={handleApproveMedicao} showToast={handleShowToast}/>}
             {activeTab === 'cronograma' && canAccess('cronograma') && <Cronograma proj={proj} onRefresh={refreshData}/>}
             {activeTab === 'tarefas' && canAccess('tarefas') && <GestaoTarefas proj={proj} onRefresh={refreshData}/>}
             {activeTab === 'suprimentos' && canAccess('suprimentos') && <Suprimentos proj={proj}/>}
