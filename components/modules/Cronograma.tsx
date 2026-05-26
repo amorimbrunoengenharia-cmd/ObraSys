@@ -9,12 +9,15 @@ import { getStaff } from '../../app/actions/user';
 import { importMSProjectXML } from '../../app/actions/import';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calculateSCurve } from '../../lib/utils/sCurve';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 export default function Cronograma({ proj, onRefresh }: any) {
   const { user } = useAuth();
   const isMestre = user?.role === 'Mestre de Obras';
   const router = useRouter();
   const [isImporting, setIsImporting] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importMode, setImportMode] = useState<'overwrite' | 'update'>('update');
   const [collapsedTasks, setCollapsedTasks] = useState<Set<number>>(new Set());
@@ -395,8 +398,91 @@ export default function Cronograma({ proj, onRefresh }: any) {
     URL.revokeObjectURL(url);
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownloadPDF = async () => {
+    try {
+      setIsExportingPDF(true);
+      const container = document.getElementById("cronograma-export-container");
+      const tableDiv = document.getElementById("table-scroll-container");
+      const ganttDiv = document.getElementById("gantt-scroll-container");
+      
+      if (!container) return;
+
+      // Armazenar estilos originais
+      const origContainerStyle = container.style.cssText;
+      let origTableStyle = '';
+      let origGanttStyle = '';
+
+      // Forçar expansão para caber tudo no canvas sem scroll
+      container.style.width = 'max-content';
+      container.style.height = 'max-content';
+      container.style.overflow = 'visible';
+      container.style.display = 'flex';
+      
+      if (tableDiv) {
+          origTableStyle = tableDiv.style.cssText;
+          tableDiv.style.overflow = 'visible';
+          tableDiv.style.width = 'max-content';
+          tableDiv.style.height = 'max-content';
+      }
+
+      if (ganttDiv) {
+          origGanttStyle = ganttDiv.style.cssText;
+          ganttDiv.style.overflow = 'visible';
+          ganttDiv.style.width = 'max-content';
+          ganttDiv.style.height = 'max-content';
+          ganttDiv.style.flex = 'none';
+      }
+
+      // Pequeno delay para o navegador aplicar os estilos
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const canvas = await html2canvas(container, {
+        scale: 2, 
+        useCORS: true,
+        backgroundColor: '#0B1121',
+        logging: false
+      });
+
+      // Restaurar estilos imediatamente após o screenshot
+      container.style.cssText = origContainerStyle;
+      if (tableDiv) tableDiv.style.cssText = origTableStyle;
+      if (ganttDiv) ganttDiv.style.cssText = origGanttStyle;
+
+      const imgData = canvas.toDataURL('image/png');
+      
+      // Criar PDF em formato A3 Paisagem para caber gráficos extensos
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a3' 
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      const imgRatio = canvas.width / canvas.height;
+      
+      let finalWidth = pdfWidth;
+      let finalHeight = finalWidth / imgRatio;
+      
+      // Se a imagem for mais alta que a página, ajusta pela altura
+      if (finalHeight > pdfHeight) {
+          finalHeight = pdfHeight;
+          finalWidth = finalHeight * imgRatio;
+      }
+      
+      const x = (pdfWidth - finalWidth) / 2;
+      const y = (pdfHeight - finalHeight) / 2;
+
+      pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+      pdf.save(`Cronograma_${proj?.name || 'Projeto'}.pdf`);
+      
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao gerar PDF.");
+    } finally {
+      setIsExportingPDF(false);
+    }
   };
 
   // A função de renderGanttLines foi movida para dentro do render para ter acesso ao escopo minStartOffset
@@ -405,6 +491,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
     <div className="h-full flex flex-col animate-in fade-in relative overflow-hidden bg-[#0B1121] text-slate-200 font-['Urbanist',_sans-serif] print:h-auto print:overflow-visible print:bg-white print:text-black">
          
          {isImporting && <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white"><div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div><h3 className="font-bold">Sincronizando MS Project...</h3></div>}
+         {isExportingPDF && <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center text-white"><div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4 shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div><h3 className="font-black text-xl tracking-wider">Gerando PDF Premium...</h3><p className="text-slate-400 mt-2">Capturando o Cronograma e Visão Gantt em alta resolução.</p></div>}
 
          {/* TOOLBAR FIXA (NOVO) */}
          <div className="px-6 py-4 border-b border-slate-800 bg-[#0f172a] flex justify-between items-center sticky top-0 z-40 shadow-xl">
@@ -430,7 +517,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
                 </div>
 
                 <div className="flex gap-1.5 border-r border-slate-800 pr-3 mr-3 print:hidden">
-                    <button onClick={handlePrint} title="Baixar PDF / Imprimir" className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-all"><Printer size={16}/></button>
+                    <button onClick={handleDownloadPDF} title="Baixar PDF Premium" className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-all"><Printer size={16}/></button>
                     {!isMestre && <button onClick={handleImportClick} title="Importar do MS Project" className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-all"><FileUp size={16}/></button>}
                     {!isMestre && <button onClick={handleExport} title="Exportar para XML" className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-all"><FileDown size={16}/></button>}
                 </div>
@@ -444,9 +531,10 @@ export default function Cronograma({ proj, onRefresh }: any) {
          </div>
 
          {activeTab === 'table' ? (
-            <div className="flex-1 flex overflow-hidden select-none print:overflow-visible print:block">
+            <div id="cronograma-export-container" className="flex-1 flex overflow-hidden select-none print:overflow-visible print:block bg-[#0B1121]">
                 {/* TABELA WBS (ESQUERDA) */}
                 <div 
+                  id="table-scroll-container"
                   className="overflow-auto bg-[#0B1121] border-r border-slate-800 transition-all duration-75 print:overflow-visible print:w-full print:bg-white print:text-black print:border-none"
                   style={{ width: isGanttVisible ? `${splitWidth}%` : '100%' }}
                 >
@@ -590,7 +678,7 @@ export default function Cronograma({ proj, onRefresh }: any) {
 
                 {/* GRÁFICO GANTT (DIREITA) */}
                 {isGanttVisible && (
-                    <div className="flex-1 overflow-auto bg-[#0B1121] relative transition-all duration-75 print:overflow-visible print:bg-white">
+                    <div id="gantt-scroll-container" className="flex-1 overflow-auto bg-[#0B1121] relative transition-all duration-75 print:overflow-visible print:bg-white">
                         <div className="sticky top-0 z-20 bg-[#0f172a] border-b border-slate-800 flex flex-col shadow-xl">
                             {/* Linha dos Meses */}
                             <div className="flex h-7 bg-[#162032]">
