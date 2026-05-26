@@ -88,7 +88,7 @@ export async function createMeasurement(contractId: number, data: any) {
                     message: `A Medição ${measurement.ref} do contrato de ${measurement.contract.empresa} está aguardando análise.`,
                     type: "MEASUREMENT",
                     isRead: false,
-                    link: `/projeto/${measurement.contract.projectId}/financeiro`
+                    link: `/projeto/${measurement.contract.projectId}?tab=medicoes`
                 }))
             });
         }
@@ -281,7 +281,7 @@ export async function approveMeasurement(measurementId: number) {
                         message: `A Medição ${measurement.ref} de ${measurement.contract.empresa} foi aprovada e integrada ao financeiro.`,
                         type: "FINANCIAL",
                         isRead: false,
-                        link: `/projeto/${project.id}/financeiro`
+                        link: `/projeto/${project.id}?tab=financeiro`
                     }))
                 });
             }
