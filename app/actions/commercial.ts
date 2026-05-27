@@ -231,8 +231,8 @@ export async function getContractHistory(projectId: string) {
                 financials: {
                     where: {
                         tipo: 'ENTRADA',
-                        classificacaoDRE: { in: ['1. Receita Operacional', '1. Receita Operacional (Resgate de Caução)'] },
-                        descricao: { contains: 'BM' }
+                        classificacaoDRE: { in: ['1. Receita Operacional', '1. Receita Operacional (Resgate de Caução)', '1. RECEITA OPERACIONAL', '1. RECEITA OPERACIONAL (RESGATE DE CAUÇÃO)'] },
+                        descricao: { contains: 'BM', mode: 'insensitive' }
                     },
                     orderBy: { dataVencimento: 'desc' }
                 }

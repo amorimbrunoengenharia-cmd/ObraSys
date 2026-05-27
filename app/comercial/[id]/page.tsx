@@ -118,8 +118,8 @@ export default function ContractHistoryPage() {
         }
 
         const financials = project.financials || [];
-        const measurementRecords = financials.filter((f: any) => f.classificacaoDRE === '1. Receita Operacional');
-        const releaseRecords = financials.filter((f: any) => f.classificacaoDRE === '1. Receita Operacional (Resgate de Caução)');
+        const measurementRecords = financials.filter((f: any) => f.classificacaoDRE?.toUpperCase() === '1. RECEITA OPERACIONAL');
+        const releaseRecords = financials.filter((f: any) => f.classificacaoDRE?.toUpperCase() === '1. RECEITA OPERACIONAL (RESGATE DE CAUÇÃO)');
 
         const totalMedido = measurementRecords.reduce((acc: number, curr: any) => acc + (curr.valorBruto ?? 0), 0);
         const totalRetido = measurementRecords.reduce((acc: number, curr: any) => acc + (curr.caucaoRetida ?? 0), 0);
@@ -680,7 +680,7 @@ export default function ContractHistoryPage() {
                                         const bmMatch = m.descricao?.match(/BM(\d+)/);
                                         const bmNum = bmMatch ? bmMatch[1] : null;
                                         const isReleased = project.financials.some((f: any) => 
-                                            f.classificacaoDRE === '1. Receita Operacional (Resgate de Caução)' && 
+                                            f.classificacaoDRE?.toUpperCase() === '1. RECEITA OPERACIONAL (RESGATE DE CAUÇÃO)' && 
                                             f.descricao?.includes(`BM ${bmNum}`)
                                         );
 
