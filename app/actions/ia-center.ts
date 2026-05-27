@@ -217,9 +217,9 @@ export async function generateSwotAnalysis(projectId: number) {
     if (!pulseRes.success) return pulseRes;
 
     const prompt = await generateSwotPrompt(pulseRes.data);
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
 
-    if (!apiKey) throw new Error("GEMINI_API_KEY não configurada.");
+    if (!apiKey) throw new Error("GEMINI_API_KEY ou GOOGLE_GEMINI_API_KEY não configurada.");
 
     // TENTATIVA DIRETA VIA FETCH 
     // Usando o Gemini 2.5 Flash, modelo identificado como disponível para esta chave específica via diagnóstico de API
