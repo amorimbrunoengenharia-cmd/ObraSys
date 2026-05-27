@@ -1,6 +1,6 @@
 ---
 tags: [obrasys, dashboard, indice]
-updated: 2026-05-27T21:04:48.623Z
+updated: 2026-05-27T21:05:54.917Z
 ---
 
 # 🏗️ ObraSys — Índice de Projetos
@@ -12,4 +12,4 @@ updated: 2026-05-27T21:04:48.623Z
 | [[Projetos/WS0120022026  ALMAVIVA/Financeiro_Resumo\|WS01_20.02.2026 - ALMAVIVA]] | Em Execução | R$ 73.084,80 | 0 | 0 | 6 |
 
 ---
-_Última sincronização: 27/05/2026, 21:04:48_
+_Última sincronização: 27/05/2026, 21:05:54_

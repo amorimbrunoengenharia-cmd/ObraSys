@@ -1,7 +1,7 @@
 ---
 tags: [financeiro, fpa, ws0120022026-almaviva]
 projeto: "WS01_20.02.2026 - ALMAVIVA"
-updated: 2026-05-27T21:04:48.553Z
+updated: 2026-05-27T21:05:54.840Z
 ---
 
 # 💰 Painel Financeiro — WS01_20.02.2026 - ALMAVIVA
@@ -12,14 +12,14 @@ updated: 2026-05-27T21:04:48.553Z
 | Orçamento Base | R$ 73.084,80 |
 | Total Recebido | R$ 27.603,53 |
 | Total Despesas | R$ 23.308,00 |
-| Total Pago | R$ 16.308,00 |
+| Total Pago | R$ 23.308,00 |
 | **Saldo Operacional** | **R$ 4.295,54** |
 | Margem | 15.6% |
 
 ## Top 10 Despesas
 | # | Descrição | Fornecedor | Valor | Status |
 |---|-----------|------------|-------|--------|
-| 1 | BM BM01 - TW TERRAPLANAGEM E CONCRETO LISO | TW TERRAPLANAGEM E CONCRETO LISO | R$ 7.000,00 | A PAGAR |
+| 1 | BM BM01 - TW TERRAPLANAGEM E CONCRETO LISO | TW TERRAPLANAGEM E CONCRETO LISO | R$ 7.000,00 | Pago |
 | 2 | BM BM03 - TW TERRAPLANAGEM E CONCRETO LISO | TW TERRAPLANAGEM E CONCRETO LISO | R$ 6.925,80 | Pago |
 | 3 | BM BM02 - TW TERRAPLANAGEM E CONCRETO LISO | TW TERRAPLANAGEM E CONCRETO LISO | R$ 4.680,00 | Pago |
 | 4 | BM BM04 - TW TERRAPLANAGEM E CONCRETO LISO | TW TERRAPLANAGEM E CONCRETO LISO | R$ 4.617,20 | Pago |
@@ -34,4 +34,4 @@ updated: 2026-05-27T21:04:48.553Z
 | TW TERRAPLANAGEM E CONCRETO LISO | Período: Fev/2026 | R$ 7.000,00 | Aprovado |
 
 ---
-_Gerado automaticamente pelo ObraSys em 27/05/2026, 21:04:48_
+_Gerado automaticamente pelo ObraSys em 27/05/2026, 21:05:54_
