@@ -161,7 +161,7 @@ export default function PortalCliente({ proj, localPosts, setLocalPosts, setActi
         // Filtrar
         if (activeFilter === 'Fotos') return sorted.filter(i => i.type === 'PHOTO');
         if (activeFilter === 'RDOs') return sorted.filter(i => i.type === 'RDO');
-        if (activeFilter === 'Aprovações') return sorted.filter(i => i.type === 'APPROVAL');
+        if (activeFilter === 'Aprovações' || activeFilter.startsWith('Aprova')) return sorted.filter(i => i.type === 'APPROVAL');
         
         return sorted;
     }, [localPosts, proj.rdos, proj.approvals, pendingApprovals, activeFilter]);
