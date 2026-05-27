@@ -412,7 +412,7 @@ export default function VisaoGeral({ proj, localPosts, setActiveTab }: any) {
                         <div className="bg-white dark:bg-[#162032] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:border-blue-500">
                             {item.image && (
                                 <div className="mb-3 rounded-xl overflow-hidden aspect-video bg-slate-200 dark:bg-slate-800 relative group-hover:scale-[1.02] transition-transform">
-                                    <img src={item.image} alt="Campo" className="w-full h-full object-cover" />
+                                    <img src={item.image} alt="Campo" className="absolute inset-0 w-full h-full object-cover" />
                                     <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-md p-1.5 rounded-lg text-white"><ImageIcon size={14}/></div>
                                 </div>
                             )}
