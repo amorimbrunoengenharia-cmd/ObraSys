@@ -22,9 +22,18 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
 
     if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY) {
+      // PDFs e documentos devem ser enviados como 'raw' para evitar bloqueio de segurança do Cloudinary.
+      // Cloudinary classifica PDFs enviados como 'auto' → 'image', e depois bloqueia acesso direto (401).
+      const fileName = file.name || '';
+      const ext = fileName.split('.').pop()?.toLowerCase() || '';
+      const isDocument = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt'].includes(ext);
+      const resourceType = isDocument ? 'raw' : 'auto';
+      
+      console.log('[upload] File:', fileName, 'Extension:', ext, 'ResourceType:', resourceType);
+      
       return new Promise<NextResponse>((resolve, reject) => {
         cloudinary.uploader.upload_stream(
-          { folder: 'obrasys_rdos', resource_type: 'auto' },
+          { folder: 'obrasys_rdos', resource_type: resourceType },
           (error, result) => {
             if (error) {
               console.error('Cloudinary Error:', error);
