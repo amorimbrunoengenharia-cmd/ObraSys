@@ -1,7 +1,7 @@
 # Último Sync
-- **Data:** 27/05/2026, 14:56:39
+- **Data:** 27/05/2026, 16:48:33
 - **RDOs:** 7
-- **Financeiro:** 2
+- **Financeiro:** 3
 - **Suprimentos:** 0
 - **Qualidade:** 0
-- **Total:** 10 notas
+- **Total:** 11 notas

@@ -1,15 +1,15 @@
 ---
-tags: [financeiro, fpa, sede-araçatuba]
-projeto: "SEDE - ARAÇATUBA"
-updated: 2026-05-27T16:48:32.658Z
+tags: [financeiro, fpa, ws0120022026-almaviva]
+projeto: "WS01_20.02.2026 - ALMAVIVA"
+updated: 2026-05-27T16:48:32.696Z
 ---
 
-# 💰 Painel Financeiro — SEDE - ARAÇATUBA
+# 💰 Painel Financeiro — WS01_20.02.2026 - ALMAVIVA
 
 ## KPIs Consolidados
 | Indicador | Valor |
 |-----------|-------|
-| Orçamento Base | R$ 0,00 |
+| Orçamento Base | R$ 73.084,80 |
 | Total Recebido | R$ 0,00 |
 | Total Despesas | R$ 0,00 |
 | Total Pago | R$ 0,00 |
