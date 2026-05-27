@@ -303,7 +303,7 @@ export default function ContractHistoryPage() {
                 <div className="ml-auto flex gap-3">
                     {project.contractFileUrl && (
                         <a 
-                            href={project.contractFileUrl} 
+                            href={`/api/contract-download?url=${encodeURIComponent(project.contractFileUrl)}`}
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="bg-white dark:bg-[#162032] border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm"
