@@ -278,7 +278,7 @@ export default function ContractHistoryPage() {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-[#0B1121] text-slate-900 dark:text-slate-100 font-sans pb-20">
             {/* HEADER */}
-            <header className="h-20 bg-white dark:bg-[#162032] border-b border-slate-200 dark:border-slate-700 flex items-center px-8 sticky top-0 z-40 shadow-sm">
+            <header className="min-h-[5rem] py-4 bg-white dark:bg-[#162032] border-b border-slate-200 dark:border-slate-700 flex items-center px-8 sticky top-0 z-40 shadow-sm">
                 <Link href="/comercial" className="mr-6 text-slate-400 hover:text-blue-500 transition-colors"><ArrowLeft size={24} /></Link>
                 <div>
                     <div className="flex items-center gap-2 mb-0.5">
@@ -288,7 +288,17 @@ export default function ContractHistoryPage() {
                     </div>
                     <h1 className="text-xl font-black flex items-center gap-2 uppercase tracking-tight">
                         {project.name}
+                        {project.status && (
+                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-1 rounded-md tracking-widest">
+                                {project.status}
+                            </span>
+                        )}
                     </h1>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        {project.clientName && <span><span className="text-slate-300 dark:text-slate-600">Cliente:</span> {project.clientName}</span>}
+                        {project.signatureDate && <span><span className="text-slate-300 dark:text-slate-600">Assinatura:</span> {new Date(project.signatureDate).toLocaleDateString('pt-BR')}</span>}
+                        {project.osDate && <span><span className="text-slate-300 dark:text-slate-600">Ordem de Serviço:</span> {new Date(project.osDate).toLocaleDateString('pt-BR')}</span>}
+                    </div>
                 </div>
                 <div className="ml-auto flex gap-3">
                     {project.contractFileUrl && (
@@ -343,6 +353,15 @@ export default function ContractHistoryPage() {
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Contratado Atualizado</p>
                                     <p className="text-2xl font-black text-blue-600 dark:text-blue-400">{formatter.format(stats.totalContratado)}</p>
                                 </div>
+
+                                <div className="mt-3 mb-2 flex gap-2">
+                                    <span className="px-2 py-1 bg-slate-50 dark:bg-slate-800/50 text-slate-500 rounded text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700">
+                                        Impostos: {project.taxPercent || 0}%
+                                    </span>
+                                    <span className="px-2 py-1 bg-slate-50 dark:bg-slate-800/50 text-slate-500 rounded text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700">
+                                        Retenção Téc.: {project.retentionPercent || 0}%
+                                    </span>
+                                </div>
                                 
                                 {/* BARRA DE PROGRESSO DE MEDIÇÃO */}
                                 <div className="mt-6">
@@ -389,7 +408,14 @@ export default function ContractHistoryPage() {
                             </div>
                             
                             <div className="pt-6 border-t border-slate-100 dark:border-slate-700">
-                                <p className="text-[11px] font-black text-slate-400 uppercase mb-2">Nova Data de Entrega Prevista</p>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <p className="text-[11px] font-black text-slate-400 uppercase">Nova Data de Entrega Prevista</p>
+                                    {project.osDate ? (
+                                        <span className="text-[9px] font-bold text-slate-400 lowercase">(Base: Data OS)</span>
+                                    ) : (
+                                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-black tracking-widest uppercase animate-pulse">Aguardando OS</span>
+                                    )}
+                                </div>
                                 <div className="flex items-center gap-3">
                                     <span className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
                                         {stats.novaDataEntrega ? stats.novaDataEntrega.toLocaleDateString('pt-BR') : '--/--/----'}
@@ -432,6 +458,14 @@ export default function ContractHistoryPage() {
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-4xl font-black text-orange-600 dark:text-orange-500 tracking-tighter">
                                         {formatter.format(stats.saldoAResgatar ?? 0)}
+                                    </span>
+                                </div>
+                                <div className="mt-3 flex gap-2">
+                                    <span className="px-2 py-1 bg-slate-50 dark:bg-slate-800/50 text-slate-500 rounded text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700">
+                                        Liberação: {project.retentionRule === 'AT_END' ? 'Fim da Obra' : 'Por Medição'}
+                                    </span>
+                                    <span className="px-2 py-1 bg-slate-50 dark:bg-slate-800/50 text-slate-500 rounded text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700">
+                                        Prazo: +{project.retentionDays || 0} Dias
                                     </span>
                                 </div>
                             </div>
