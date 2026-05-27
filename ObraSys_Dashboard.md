@@ -1,6 +1,6 @@
 ---
 tags: [obrasys, dashboard, indice]
-updated: 2026-05-27T14:21:18.706Z
+updated: 2026-05-27T14:56:39.528Z
 ---
 
 # 🏗️ ObraSys — Índice de Projetos
@@ -11,4 +11,4 @@ updated: 2026-05-27T14:21:18.706Z
 | [[Projetos/WS0426022026  MONJARDIN  REPARO PISO E ENCHIMENTO/Financeiro_Resumo\|WS04_26.02.2026 - MONJARDIN - REPARO PISO E ENCHIMENTO]] | Concluído | R$ 9.148,39 | 7 | 7 | 12 |
 
 ---
-_Última sincronização: 27/05/2026, 14:21:18_
+_Última sincronização: 27/05/2026, 14:56:39_

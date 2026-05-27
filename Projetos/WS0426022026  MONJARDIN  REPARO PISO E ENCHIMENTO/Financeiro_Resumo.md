@@ -1,7 +1,7 @@
 ---
 tags: [financeiro, fpa, ws0426022026-monjardin-reparo-piso-e-enchimento]
 projeto: "WS04_26.02.2026 - MONJARDIN - REPARO PISO E ENCHIMENTO"
-updated: 2026-05-27T14:21:18.546Z
+updated: 2026-05-27T14:56:39.458Z
 ---
 
 # 💰 Painel Financeiro — WS04_26.02.2026 - MONJARDIN - REPARO PISO E ENCHIMENTO
@@ -34,7 +34,6 @@ updated: 2026-05-27T14:21:18.546Z
 | Fornecedor | Período | Valor Medido | Status |
 |------------|---------|--------------|--------|
 | TW TERRAPLANAGEM E CONCRETO LISO | Período: Atual | R$ 1.800,00 | Aprovado |
-| TW TERRAPLANAGEM E CONCRETO LISO | Período: Atual | R$ 2.700,00 | Aprovado |
 | TW TERRAPLANAGEM E CONCRETO LISO | Período: mar/2026 | R$ 2.700,00 | Aprovado |
 | Alugue Maquinas | Período: mar/2026 | R$ 1.554,14 | Aprovado |
 | Marcio Benitez | Período: mar/2026 | R$ 1.400,00 | Em Análise |
@@ -42,4 +41,4 @@ updated: 2026-05-27T14:21:18.546Z
 | Marcio Benitez | Período: Atual | R$ 1.400,00 | Aprovado |
 
 ---
-_Gerado automaticamente pelo ObraSys em 27/05/2026, 14:21:18_
+_Gerado automaticamente pelo ObraSys em 27/05/2026, 14:56:39_
