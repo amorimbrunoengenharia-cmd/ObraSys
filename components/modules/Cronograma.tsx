@@ -9,9 +9,8 @@ import { getStaff } from '../../app/actions/user';
 import { importMSProjectXML } from '../../app/actions/import';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calculateSCurve } from '../../lib/utils/sCurve';
-// @ts-ignore
-import domtoimage from 'dom-to-image-more';
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function Cronograma({ proj, onRefresh }: any) {
   const { user } = useAuth();
@@ -402,133 +401,300 @@ export default function Cronograma({ proj, onRefresh }: any) {
   const handleDownloadPDF = async () => {
     try {
       setIsExportingPDF(true);
-      const container = document.getElementById("cronograma-export-container");
-      const tableDiv = document.getElementById("table-scroll-container");
-      const ganttDiv = document.getElementById("gantt-scroll-container");
+      // Aguarda um pequeno delay para a UI exibir o loading, se necessário
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      if (!container) return;
-
-      const origContainerStyle = container.style.cssText;
-      let origTableStyle = '';
-      let origGanttStyle = '';
-      const hiddenElements: any[] = [];
-
-      // Forçar expansão no DOM original
-      container.style.width = 'max-content';
-      container.style.height = 'max-content';
-      container.style.overflow = 'visible';
-      container.style.display = 'flex';
-      
-      if (tableDiv) {
-          origTableStyle = tableDiv.style.cssText;
-          tableDiv.style.overflow = 'visible';
-          tableDiv.style.width = 'max-content';
-          tableDiv.style.height = 'max-content';
-      }
-
-      if (ganttDiv) {
-          origGanttStyle = ganttDiv.style.cssText;
-          ganttDiv.style.overflow = 'visible';
-          ganttDiv.style.width = 'max-content';
-          ganttDiv.style.height = 'max-content';
-          ganttDiv.style.flex = 'none';
-      }
-
-      // Ocultar SVGs de setas no DOM para evitar crash com SVG markers
-      const svgs = container.querySelectorAll('svg');
-      svgs.forEach((svg: any) => {
-         if (svg.innerHTML && svg.innerHTML.includes('marker')) {
-             hiddenElements.push(svg);
-             svg.style.display = 'none';
-         }
-      });
-
-      // Pequeno delay para o navegador aplicar
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Usando dom-to-image-more que suporta 100% das cores CSS modernas (incluindo lab() e oklch())
-      // porque utiliza SVG <foreignObject> nativo do navegador em vez de um parser CSS manual (como o html2canvas faz)
-      const dataUrl = await domtoimage.toPng(container, {
-        bgcolor: '#0B1121',
-        width: container.scrollWidth,
-        height: container.scrollHeight,
-        style: {
-          transform: 'scale(1)',
-          transformOrigin: 'top left'
-        }
-      });
-
-      // Criar PDF em formato A3 Paisagem para caber gráficos extensos
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
         format: 'a3' 
       });
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      
-      // Para manter a alta resolução sem canvas, calculamos via imagem
-      const img = new Image();
-      img.src = dataUrl;
-      await new Promise(resolve => { img.onload = resolve; });
-      
-      const imgRatio = img.width / img.height;
-      
-      let finalWidth = pdfWidth;
-      let finalHeight = finalWidth / imgRatio;
-      
-      // Se a imagem for mais alta que a página, ajusta pela altura
-      if (finalHeight > pdfHeight) {
-          finalHeight = pdfHeight;
-          finalWidth = finalHeight * imgRatio;
-      }
-      
-      const x = (pdfWidth - finalWidth) / 2;
-      const y = (pdfHeight - finalHeight) / 2;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+      let startY = margin;
 
-      pdf.addImage(dataUrl, 'PNG', x, y, finalWidth, finalHeight);
-      pdf.save(`Cronograma_${proj?.name || 'Projeto'}.pdf`);
+      // --- HEADER ---
+      pdf.setFillColor(11, 17, 33); // #0B1121
+      pdf.rect(0, 0, pageWidth, 40, 'F');
+      
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(22);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(`Cronograma Master: ${proj?.name || 'Projeto'}`, margin, 20);
+      
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(148, 163, 184); // slate-400
+      pdf.text(`Way Service Engineering • V2.5 • Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, margin, 30);
+      
+      // KPIs no Header
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      const statusColor = performance.status === 'ATRASADO' ? [239, 68, 68] : (performance.status === 'ADIANTADO' ? [59, 130, 246] : [16, 185, 129]);
+      pdf.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+      pdf.text(`Status: ${performance.status} (SPI: ${performance.spi})`, pageWidth - margin - 80, 20);
+
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Total Tarefas: ${tarefas.length}`, pageWidth - margin - 80, 30);
+
+      startY = 45;
+
+      // --- DADOS DO GANTT ---
+      const allStarts = visibleTarefas.map((t: any) => Number(t.start) || 0);
+      const allEnds = visibleTarefas.map((t: any) => (Number(t.start) || 0) + (Number(t.duration) || 0));
+      const minGanttStart = allStarts.length > 0 ? Math.max(0, Math.min(...allStarts) - 2) : 0;
+      const maxGanttEnd = allEnds.length > 0 ? Math.max(...allEnds) : minGanttStart + 30;
+      const totalDays = Math.max(30, maxGanttEnd - minGanttStart + 5);
+
+      // --- TABELA WBS ---
+      const tableData = visibleTarefas.map((t: any) => {
+          const cEnd = (Number(t.start) || 0) + (Number(t.duration) || 0);
+          const assigneesStr = (t.assignees || []).map((u: any) => u.name.substring(0, 2).toUpperCase()).join(', ');
+          
+          return [
+              t.wbs,
+              t.name,
+              t.statusLabel,
+              t.start?.toString() || '0',
+              cEnd.toString(),
+              `${Number(t.progress || 0).toFixed(0)}%`,
+              assigneesStr || '-'
+          ];
+      });
+
+      const ganttXOffset = 200; // Largura aproximada da tabela
+      const dayWidth = (pageWidth - margin - ganttXOffset) / totalDays;
+
+      autoTable(pdf, {
+          startY: startY,
+          margin: { left: margin, right: margin },
+          head: [['WBS', 'Atividade', 'Status', 'Início', 'Fim', '%', 'Resp', 'Visão Gantt']],
+          body: tableData.map((row: any) => [...row, '']), // Coluna Gantt vazia
+          theme: 'grid',
+          styles: { 
+              fontSize: 8, 
+              cellPadding: 3,
+              lineColor: [30, 41, 59], // slate-800
+              lineWidth: 0.1,
+              textColor: [148, 163, 184], // slate-400
+              fillColor: [11, 17, 33], // bg-[#0B1121]
+          },
+          headStyles: {
+              fillColor: [22, 32, 50], // #162032
+              textColor: [248, 250, 252], // slate-50
+              fontStyle: 'bold',
+              halign: 'center'
+          },
+          alternateRowStyles: {
+              fillColor: [15, 23, 42], // slate-900 (zebra leve)
+          },
+          columnStyles: {
+              0: { cellWidth: 15, halign: 'left' },  // WBS
+              1: { cellWidth: 80, halign: 'left' },  // Nome
+              2: { cellWidth: 20, halign: 'center' }, // Status
+              3: { cellWidth: 12, halign: 'center' }, // Início
+              4: { cellWidth: 12, halign: 'center' }, // Fim
+              5: { cellWidth: 12, halign: 'center' }, // Progresso
+              6: { cellWidth: 15, halign: 'center' }, // Resp
+              7: { cellWidth: 'auto' }, // Gantt (ocupa o resto)
+          },
+          didParseCell: function(data) {
+             // Formatar cor da célula de Status
+             if (data.section === 'body' && data.column.index === 2) {
+                 const status = data.cell.raw;
+                 if (status === 'Concluído') data.cell.styles.textColor = [59, 130, 246]; // blue-500
+                 else if (status === 'Atrasado' || status === 'Impedido') data.cell.styles.textColor = [239, 68, 68]; // red-500
+                 else if (status === 'Atenção') data.cell.styles.textColor = [245, 158, 11]; // amber-500
+                 else data.cell.styles.textColor = [16, 185, 129]; // emerald-500
+             }
+             if (data.section === 'body' && data.column.index === 1) {
+                 const t = visibleTarefas[data.row.index];
+                 if (t.isSummary) {
+                     data.cell.styles.fontStyle = 'bold';
+                     data.cell.styles.textColor = [255, 255, 255];
+                     // fundo para summary
+                     data.cell.styles.fillColor = [22, 32, 50]; 
+                 } else {
+                     data.cell.styles.cellPadding = { top: 3, right: 3, bottom: 3, left: 3 + (t.level * 4) };
+                 }
+             }
+             // Summary row backgrounds for other columns to match
+             if (data.section === 'body' && visibleTarefas[data.row.index].isSummary) {
+                  data.cell.styles.fillColor = [22, 32, 50];
+             }
+          },
+          didDrawCell: function(data) {
+              // Desenhar Barras de Gantt
+              if (data.section === 'body' && data.column.index === 7) {
+                  const t = visibleTarefas[data.row.index];
+                  const tStart = Number(t.start) || 0;
+                  const tDur = Number(t.duration) || 0;
+                  const progress = Number(t.progress) || 0;
+                  
+                  const startOffset = Math.max(0, tStart - minGanttStart);
+                  
+                  // Se a barra começar depois do visível (improvável) ou terminar antes
+                  if (startOffset < totalDays) {
+                      const barX = data.cell.x + (startOffset * dayWidth) + 1;
+                      const barY = data.cell.y + 2;
+                      const barW = Math.min(tDur * dayWidth, data.cell.width - (startOffset * dayWidth) - 2);
+                      const barH = data.cell.height - 4;
+                      
+                      if (barW > 0) {
+                          // Fundo da barra (cinza escuro)
+                          pdf.setFillColor(51, 65, 85); // slate-700
+                          pdf.roundedRect(barX, barY, barW, barH, 1, 1, 'F');
+                          
+                          // Progresso da barra
+                          if (progress > 0) {
+                              if (progress >= 100) pdf.setFillColor(16, 185, 129); // emerald
+                              else pdf.setFillColor(59, 130, 246); // blue
+                              
+                              const progW = barW * (progress / 100);
+                              // Só desenha se for maior que 0
+                              if (progW > 0.1) {
+                                  pdf.roundedRect(barX, barY, progW, barH, 1, 1, 'F');
+                              }
+                          }
+                      }
+                  }
+              }
+              // Desenhar Linha do Tempo Básica no Cabeçalho
+              if (data.section === 'head' && data.column.index === 7) {
+                  pdf.setFontSize(7);
+                  pdf.setTextColor(148, 163, 184);
+                  pdf.text("Linha do Tempo (Dias) ➔", data.cell.x + 2, data.cell.y + Math.max(0, data.cell.height / 2 + 2));
+                  
+                  // Grade vertical simples
+                  pdf.setDrawColor(51, 65, 85);
+                  pdf.setLineWidth(0.1);
+                  for (let i = 0; i < totalDays; i += 7) { // A cada 7 dias
+                      const lineX = data.cell.x + (i * dayWidth);
+                      pdf.line(lineX, data.cell.y + data.cell.height - 2, lineX, data.cell.y + data.cell.height);
+                  }
+              }
+          }
+      });
+
+      const finalY = (pdf as any).lastAutoTable.finalY + 15;
+
+      // --- RELATÓRIOS (EVA SUMMARY E CURVA S BÁSICA) ---
+      if (finalY + 50 < pageHeight) {
+          // Caixa EVA
+          pdf.setFillColor(22, 32, 50); // #162032
+          pdf.setDrawColor(30, 41, 59); // slate-800
+          pdf.roundedRect(margin, finalY, 120, 45, 3, 3, 'FD');
+          
+          pdf.setFontSize(10);
+          pdf.setFont("helvetica", "bold");
+          pdf.setTextColor(255, 255, 255);
+          pdf.text("Análise de Valor Agregado (EVA)", margin + 5, finalY + 8);
+          
+          pdf.setFontSize(9);
+          pdf.setFont("helvetica", "normal");
+          
+          const pv = sCurveData.length > 0 ? sCurveData[sCurveData.length - 1]?.planejado : 0;
+          const ev = sCurveData.length > 0 ? sCurveData[sCurveData.length - 1]?.realizado : 0;
+          const sv = ev - pv;
+
+          pdf.setTextColor(148, 163, 184);
+          pdf.text(`PV (Planejado):`, margin + 5, finalY + 18);
+          pdf.setTextColor(96, 165, 250); // blue-400
+          pdf.setFont("helvetica", "bold");
+          pdf.text(`${Number(pv).toFixed(1)}%`, margin + 40, finalY + 18);
+          
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(148, 163, 184);
+          pdf.text(`EV (Realizado):`, margin + 5, finalY + 26);
+          pdf.setTextColor(52, 211, 153); // emerald-400
+          pdf.setFont("helvetica", "bold");
+          pdf.text(`${Number(ev).toFixed(1)}%`, margin + 40, finalY + 26);
+          
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(148, 163, 184);
+          pdf.text(`SV (Variação):`, margin + 5, finalY + 34);
+          pdf.setTextColor(sv >= 0 ? 52 : 248, sv >= 0 ? 211 : 113, sv >= 0 ? 153 : 113); // emerald or red
+          pdf.setFont("helvetica", "bold");
+          pdf.text(`${Number(sv).toFixed(1)}%`, margin + 40, finalY + 34);
+
+          // Renderizar mini Curva S ao lado se houver dados
+          if (sCurveData.length > 0) {
+              const graphX = margin + 140;
+              const graphY = finalY;
+              const graphW = 150;
+              const graphH = 45;
+
+              pdf.setFillColor(22, 32, 50);
+              pdf.roundedRect(graphX, graphY, graphW, graphH, 3, 3, 'FD');
+              
+              pdf.setFontSize(10);
+              pdf.setTextColor(255, 255, 255);
+              pdf.text("Curva S (Evolução %)", graphX + 5, graphY + 8);
+
+              // Eixos
+              pdf.setDrawColor(71, 85, 105); // slate-600
+              pdf.setLineWidth(0.2);
+              pdf.line(graphX + 10, graphY + graphH - 5, graphX + graphW - 5, graphY + graphH - 5); // X
+              pdf.line(graphX + 10, graphY + 15, graphX + 10, graphY + graphH - 5); // Y
+
+              // Plotar linhas
+              const pts = sCurveData.length;
+              if (pts > 1) {
+                  const xStep = (graphW - 20) / (pts - 1);
+                  const yMax = 100;
+
+                  // Função para calcular Y
+                  const getY = (val: number) => (graphY + graphH - 5) - ((val / yMax) * (graphH - 20));
+
+                  // PV Line (Blue)
+                  pdf.setDrawColor(59, 130, 246);
+                  pdf.setLineWidth(1);
+                  for (let i = 0; i < pts - 1; i++) {
+                      const p1 = sCurveData[i];
+                      const p2 = sCurveData[i+1];
+                      pdf.line(graphX + 10 + (i * xStep), getY(p1.planejado), graphX + 10 + ((i+1) * xStep), getY(p2.planejado));
+                  }
+
+                  // EV Line (Emerald)
+                  pdf.setDrawColor(16, 185, 129);
+                  pdf.setLineWidth(1);
+                  for (let i = 0; i < pts - 1; i++) {
+                      const p1 = sCurveData[i];
+                      const p2 = sCurveData[i+1];
+                      pdf.line(graphX + 10 + (i * xStep), getY(p1.realizado), graphX + 10 + ((i+1) * xStep), getY(p2.realizado));
+                  }
+
+                  // Legenda
+                  pdf.setFontSize(7);
+                  pdf.setTextColor(59, 130, 246);
+                  pdf.text("Planejado", graphX + 100, graphY + 8);
+                  pdf.setTextColor(16, 185, 129);
+                  pdf.text("Realizado", graphX + 130, graphY + 8);
+              }
+          }
+      }
+
+      // --- RODAPÉ ---
+      const pageCount = (pdf.internal as any).getNumberOfPages();
+      pdf.setFontSize(8);
+      pdf.setTextColor(148, 163, 184);
+      pdf.setFont("helvetica", "normal");
+      for (let i = 1; i <= pageCount; i++) {
+        pdf.setPage(i);
+        pdf.text(`Gerado por ObraSys Enterprise • Página ${i} de ${pageCount}`, margin, pageHeight - 10);
+      }
+
+      pdf.save(`Cronograma_${(proj?.name || 'Projeto').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
       
     } catch (e: any) {
       console.error(e);
-      alert("Erro ao gerar PDF: " + (e?.message || e));
+      alert("Erro ao gerar PDF programático: " + (e?.message || e));
     } finally {
       setIsExportingPDF(false);
-      
-      // Restaurar DOM
-      const container = document.getElementById("cronograma-export-container");
-      const tableDiv = document.getElementById("table-scroll-container");
-      const ganttDiv = document.getElementById("gantt-scroll-container");
-      
-      if (container && (container as any)._origStyle !== undefined === false) { // We didn't save it outside, but we can do a trick.
-         // Actually, wait, let's just use CSS classes to reset inline styles
-         container.style.width = '';
-         container.style.height = '';
-         container.style.overflow = '';
-         container.style.display = '';
-      }
-      
-      if (tableDiv) {
-         tableDiv.style.overflow = '';
-         tableDiv.style.width = '';
-         tableDiv.style.height = '';
-      }
-      
-      if (ganttDiv) {
-         ganttDiv.style.overflow = '';
-         ganttDiv.style.width = '';
-         ganttDiv.style.height = '';
-         ganttDiv.style.flex = '';
-      }
-      
-      // Show SVGs again
-      const svgs = document.querySelectorAll('#cronograma-export-container svg');
-      svgs.forEach((svg: any) => {
-         if (svg.style.display === 'none') {
-             svg.style.display = '';
-         }
-      });
     }
   };
 
