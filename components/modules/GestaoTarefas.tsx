@@ -63,6 +63,8 @@ export default function GestaoTarefas({ proj, onRefresh }: any) {
     const [rdoMsg, setRdoMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
     const [isGeneratingRdo, setIsGeneratingRdo] = useState(false);
     const [isSyncingObsidian, setIsSyncingObsidian] = useState(false);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [filterText, setFilterText] = useState('');
 
     const handleSyncObsidian = async () => {
         setIsSyncingObsidian(true);
@@ -182,6 +184,12 @@ export default function GestaoTarefas({ proj, onRefresh }: any) {
         }
     };
 
+    // Avatar dynamic rendering logic
+    const uniqueAssignees = Array.from(new Set(tasks.map(t => t.assignee).filter(a => a && a !== 'N/A')));
+    const displayAssignees = uniqueAssignees.slice(0, 2);
+    const extraAssigneesCount = uniqueAssignees.length > 2 ? uniqueAssignees.length - 2 : 0;
+    const avatarColors = ['bg-emerald-500', 'bg-blue-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500'];
+
     return (
         <div className="h-full flex flex-col animate-in fade-in bg-slate-50 dark:bg-[#0B1121]">
             
@@ -194,12 +202,24 @@ export default function GestaoTarefas({ proj, onRefresh }: any) {
                     <p className="text-sm text-slate-500 mt-1">Gestão de tarefas e produtividade da equipe</p>
                 </div>
                 <div className="flex gap-3">
-                    <div className="flex -space-x-2 mr-4">
-                        <div className="w-8 h-8 rounded-full border-2 border-white dark:border-[#0B1121] bg-emerald-500 text-white flex items-center justify-center text-xs font-bold z-30">MC</div>
-                        <div className="w-8 h-8 rounded-full border-2 border-white dark:border-[#0B1121] bg-blue-500 text-white flex items-center justify-center text-xs font-bold z-20">EB</div>
-                        <div className="w-8 h-8 rounded-full border-2 border-white dark:border-[#0B1121] bg-amber-500 text-white flex items-center justify-center text-xs font-bold z-10">+3</div>
-                    </div>
-                    <button className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors">
+                    {uniqueAssignees.length > 0 && (
+                        <div className="flex -space-x-2 mr-4">
+                            {displayAssignees.map((assignee, idx) => (
+                                <div key={assignee} className={`w-8 h-8 rounded-full border-2 border-white dark:border-[#0B1121] ${avatarColors[idx % avatarColors.length]} text-white flex items-center justify-center text-xs font-bold`} style={{ zIndex: 30 - idx * 10 }} title={assignee}>
+                                    {assignee.substring(0, 2).toUpperCase()}
+                                </div>
+                            ))}
+                            {extraAssigneesCount > 0 && (
+                                <div className="w-8 h-8 rounded-full border-2 border-white dark:border-[#0B1121] bg-slate-500 text-white flex items-center justify-center text-xs font-bold z-10">
+                                    +{extraAssigneesCount}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    <button 
+                        onClick={() => setIsFilterOpen(!isFilterOpen)}
+                        className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors ${isFilterOpen ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white'}`}
+                    >
                         <LayoutGrid size={16}/> Filtros
                     </button>
                     <button 
@@ -237,10 +257,34 @@ export default function GestaoTarefas({ proj, onRefresh }: any) {
                 </div>
             )}
 
+            {/* Filter Input */}
+            {isFilterOpen && (
+                <div className="px-6 mb-4 animate-in slide-in-from-top duration-300">
+                    <input 
+                        type="text" 
+                        placeholder="Filtrar por nome, descrição, tag ou responsável..." 
+                        value={filterText}
+                        onChange={(e) => setFilterText(e.target.value)}
+                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#162032] text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-500 shadow-sm transition-colors"
+                        autoFocus
+                    />
+                </div>
+            )}
+
             {/* Kanban Board */}
             <div className="flex-1 overflow-x-auto overflow-y-hidden p-6 pt-2 flex gap-6">
                 {INITIAL_COLUMNS.map(column => {
-                    const columnTasks = tasks.filter(t => t.columnId === column.id);
+                    const columnTasks = tasks.filter(t => {
+                        if (t.columnId !== column.id) return false;
+                        if (!filterText) return true;
+                        const lowerFilter = filterText.toLowerCase();
+                        return (
+                            t.title.toLowerCase().includes(lowerFilter) ||
+                            t.description.toLowerCase().includes(lowerFilter) ||
+                            t.assignee.toLowerCase().includes(lowerFilter) ||
+                            t.tags.some(tag => tag.toLowerCase().includes(lowerFilter))
+                        );
+                    });
                     
                     return (
                         <div 

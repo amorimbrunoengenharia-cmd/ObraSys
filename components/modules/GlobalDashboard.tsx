@@ -339,25 +339,31 @@ export default function GlobalDashboard({ initialKpis, initialObras, initialChar
                         <h3 className="font-bold text-sm uppercase text-slate-500 mb-6 flex items-center gap-2"><Activity size={16}/> Fluxo de Caixa (Consolidado)</h3>
                         <div className="h-64">
                             <ResponsiveContainer width="100%" height="100%" minHeight={300}>
-                                <AreaChart data={financeiro_global}>
+                                <ComposedChart data={financeiro_global}>
                                     <defs>
                                         <linearGradient id="colorReceita" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
-                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={1}/>
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.3}/>
+                                        </linearGradient>
+                                        <linearGradient id="colorDespesa" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#ef4444" stopOpacity={1}/>
+                                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0.3}/>
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.1} />
-                                    <XAxis dataKey="mes" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
+                                    <XAxis dataKey="mes" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickMargin={10} />
                                     <YAxis hide />
                                     <Tooltip 
-                                        contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '12px', fontWeight: 'bold'}} 
+                                        contentStyle={{backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', color: '#fff', fontSize: '12px', fontWeight: 'bold', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'}} 
                                         formatter={(value: any) => formatter.format(value)}
-                                        labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
+                                        labelStyle={{ color: '#94a3b8', marginBottom: '8px', borderBottom: '1px solid #334155', paddingBottom: '4px' }}
+                                        cursor={{fill: '#334155', opacity: 0.1}}
                                     />
-                                    <Area name="Receitas" type="linear" dataKey="receitas" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorReceita)" />
-                                    <Area name="Despesas" type="linear" dataKey="despesas" stroke="#ef4444" strokeWidth={2} fill="transparent" strokeDasharray="5 5" />
-                                    <Line name="Saldo Acumulado" type="linear" dataKey="saldo" stroke="#fbbf24" strokeWidth={3} dot={{ fill: '#fbbf24', strokeWidth: 2, r: 4 }} />
-                                </AreaChart>
+                                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} iconType="circle" />
+                                    <Bar name="Receitas" dataKey="receitas" fill="url(#colorReceita)" radius={[4, 4, 0, 0]} barSize={16} />
+                                    <Bar name="Despesas" dataKey="despesas" fill="url(#colorDespesa)" radius={[4, 4, 0, 0]} barSize={16} />
+                                    <Line name="Saldo do Mês" type="monotone" dataKey="saldo" stroke="#fbbf24" strokeWidth={3} dot={{ fill: '#fbbf24', strokeWidth: 2, r: 4, stroke: '#0B1121' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                                </ComposedChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
