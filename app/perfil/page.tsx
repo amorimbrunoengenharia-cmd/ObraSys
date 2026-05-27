@@ -10,7 +10,7 @@ import { useAuth } from '../../components/AuthContext';
 
 export default function PerfilUsuario() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, login, logout } = useAuth();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
