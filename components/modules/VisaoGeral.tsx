@@ -89,9 +89,15 @@ export default function VisaoGeral({ proj, localPosts, setActiveTab }: any) {
     const desvioEAC = eac - budget;
     
     // 5. Dias de Prazo (Contagem Regressiva)
-    const diasRestantes = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
-    
-    // 6. Distribuição de Custos por Categoria
+    let diasRestantes = 0;
+    if (proj.status === 'Concluído') {
+        diasRestantes = 0;
+    } else {
+        const endFallback = proj.estimatedDelivery ? new Date(proj.estimatedDelivery).getTime() : new Date().getTime() + 86400000;
+        const end = proj.endDate ? new Date(proj.endDate).getTime() : endFallback;
+        const now = new Date().getTime();
+        diasRestantes = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+    }
     const categoriasMap: any = {};
     proj.budgetItems?.forEach((item: any) => {
         const cat = item.classificacaoDRE || 'Outros';
@@ -200,10 +206,12 @@ export default function VisaoGeral({ proj, localPosts, setActiveTab }: any) {
                         <Clock className="text-blue-500" size={16}/>
                     </div>
                     <div className="flex items-baseline gap-2">
-                        <h4 className={`text-2xl font-black ${stats.diasRestantes > 0 ? 'text-blue-500' : 'text-red-500'}`}>{stats.diasRestantes} Dias</h4>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Para o Término</span>
+                        <h4 className={`text-2xl font-black ${proj.status === 'Concluído' ? 'text-emerald-500' : (stats.diasRestantes > 0 ? 'text-blue-500' : 'text-red-500')}`}>
+                            {proj.status === 'Concluído' ? 'Concluído' : `${stats.diasRestantes} Dias`}
+                        </h4>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">{proj.status === 'Concluído' ? 'No Prazo' : 'Para o Término'}</span>
                     </div>
-                    <p className="text-[9px] font-black text-slate-400 mt-2 uppercase tracking-tighter">Cronograma {stats.idp >= 1 ? 'Saudável' : 'Crítico'}</p>
+                    <p className="text-[9px] font-black text-slate-400 mt-2 uppercase tracking-tighter">Cronograma {proj.status === 'Concluído' ? 'Finalizado' : (stats.idp >= 1 ? 'Saudável' : 'Crítico')}</p>
                 </div>
 
                 <div className="bg-white dark:bg-[#162032] p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative group overflow-hidden">
