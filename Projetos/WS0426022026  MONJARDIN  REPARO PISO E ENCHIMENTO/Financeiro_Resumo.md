@@ -1,7 +1,7 @@
 ---
 tags: [financeiro, fpa, ws0426022026-monjardin-reparo-piso-e-enchimento]
 projeto: "WS04_26.02.2026 - MONJARDIN - REPARO PISO E ENCHIMENTO"
-updated: 2026-05-27T21:01:48.372Z
+updated: 2026-05-27T21:01:52.085Z
 ---
 
 # 💰 Painel Financeiro — WS04_26.02.2026 - MONJARDIN - REPARO PISO E ENCHIMENTO
@@ -41,4 +41,4 @@ updated: 2026-05-27T21:01:48.372Z
 | Marcio Benitez | Período: Atual | R$ 1.400,00 | Aprovado |
 
 ---
-_Gerado automaticamente pelo ObraSys em 27/05/2026, 21:01:48_
+_Gerado automaticamente pelo ObraSys em 27/05/2026, 21:01:52_
