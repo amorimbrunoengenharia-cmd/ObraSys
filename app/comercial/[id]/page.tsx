@@ -611,7 +611,7 @@ export default function ContractHistoryPage() {
                                                 {formatter.format(m.caucaoRetida)}
                                             </td>
                                             <td className="px-6 py-4 text-right font-bold text-sm text-amber-500">
-                                                {formatter.format(m.impostosRetidos)}
+                                                {formatter.format((m.impostosRetidos || 0) + (m.iss || 0) + (m.inss || 0))}
                                             </td>
                                             <td className="px-6 py-4 text-right font-black text-sm text-emerald-600">
                                                 {formatter.format(m.valorLiquido)}

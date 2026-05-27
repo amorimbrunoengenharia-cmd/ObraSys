@@ -47,17 +47,24 @@ export async function respondToApproval(projectId: number, approvalId: number, s
             });
 
             if (!existingFinance) {
+                const project = updatedApproval.project;
+                const vBruto = updatedApproval.amount;
+                const vRetencao = (vBruto * (project.retentionPercent || 0)) / 100;
+                const vImpostos = (vBruto * (project.taxPercent || 0)) / 100;
+                const vLiquido = vBruto - vRetencao - vImpostos;
+
                 await prisma.financialRecord.create({
                     data: {
                         projectId: projectId,
                         descricao: `Faturamento: ${updatedApproval.title}`,
                         tipo: "ENTRADA",
                         classificacaoDRE: "1. Receita Operacional",
-                        centroCusto: updatedApproval.project.name,
-                        clienteFornecedor: updatedApproval.project.clientName || clientName || "CLIENTE",
-                        valorBruto: updatedApproval.amount,
-                        impostosRetidos: 0,
-                        valorLiquido: updatedApproval.amount,
+                        centroCusto: project.name,
+                        clienteFornecedor: project.clientName || clientName || "CLIENTE",
+                        valorBruto: vBruto,
+                        caucaoRetida: vRetencao,
+                        impostosRetidos: vImpostos,
+                        valorLiquido: vLiquido,
                         status: "A VENCER",
                         dataCompetencia: new Date(),
                         dataVencimento: new Date(new Date().setDate(new Date().getDate() + 15)), // Vencimento em 15 dias
