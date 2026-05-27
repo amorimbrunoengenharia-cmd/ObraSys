@@ -500,11 +500,15 @@ export default function TIClient({ initialAssets, initialLicenses, initialTicket
                                   <div className="flex-1">
                                       <label className="text-[10px] font-black uppercase text-slate-400 block mb-2">A Partir de (R$)</label>
                                       <input 
-                                          type="number" 
-                                          value={lvl.limit}
+                                          type="text" 
+                                          value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lvl.limit || 0)}
                                           onChange={(e) => {
+                                              let numericValue = e.target.value.replace(/\D/g, "");
+                                              if (numericValue === "") numericValue = "0";
+                                              const finalValue = parseInt(numericValue, 10) / 100;
+
                                               const newLevels = [...approvalRules.levels];
-                                              newLevels[index].limit = Number(e.target.value);
+                                              newLevels[index].limit = finalValue;
                                               setApprovalRules({...approvalRules, levels: newLevels});
                                           }}
                                           className="w-full bg-white dark:bg-[#162032] border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-xl font-bold"

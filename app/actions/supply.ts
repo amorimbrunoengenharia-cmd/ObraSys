@@ -456,14 +456,16 @@ export async function updatePurchaseRequestStatus(requestId: string, newStatus: 
             const setting = await prisma.systemSetting.findUnique({ where: { key: 'PURCHASE_APPROVAL_RULES' } });
             if (setting && setting.value) {
                 const rules = JSON.parse(setting.value);
-                const sortedRules = rules.sort((a: any, b: any) => b.minimumValue - a.minimumValue);
-                const applicableRule = sortedRules.find((r: any) => totalValue >= r.minimumValue);
-                
-                if (applicableRule) {
-                    const approvers = applicableRule.approvers.split(',').map((r: string) => r.trim().toUpperCase());
-                    const currentRole = (userRole || '').trim().toUpperCase();
-                    if (!approvers.includes(currentRole) && currentRole !== 'DIRETOR') {
-                        return { success: false, error: `Seu cargo (${userRole}) não tem alçada para aprovar compras de R$ ${totalValue.toFixed(2)}. Cargos permitidos: ${applicableRule.approvers}` };
+                if (rules.enabled && Array.isArray(rules.levels)) {
+                    const sortedRules = rules.levels.sort((a: any, b: any) => b.limit - a.limit);
+                    const applicableRule = sortedRules.find((r: any) => totalValue >= r.limit);
+                    
+                    if (applicableRule) {
+                        const approvers = applicableRule.roles.map((r: string) => r.trim().toUpperCase());
+                        const currentRole = (userRole || '').trim().toUpperCase();
+                        if (!approvers.includes(currentRole) && currentRole !== 'DIRETOR' && currentRole !== 'DIRECTOR') {
+                            return { success: false, error: `Seu cargo (${userRole}) não tem alçada para aprovar compras de R$ ${totalValue.toFixed(2)}. Cargos permitidos: ${applicableRule.roles.join(', ')}` };
+                        }
                     }
                 }
             }
@@ -610,8 +612,30 @@ export async function reviewPurchaseRequest(id: string, decision: 'APROVAR' | 'R
 
             // Se for aprovação e tiver estouro de orçamento, somente Diretor pode aprovar
             if (decision === 'APROVAR' && request.status === 'PENDENTE_ESTOURO_ORCAMENTO') {
-                if (userRole.toUpperCase() !== 'DIRETOR') {
+                if (userRole.toUpperCase() !== 'DIRETOR' && userRole.toUpperCase() !== 'DIRECTOR') {
                     throw new Error("Esta solicitação estourou o orçamento da obra. Apenas um Diretor pode aprová-la.");
+                }
+            }
+
+            // Hierarquia de Aprovações (Regras de Negócio)
+            if (decision === 'APROVAR') {
+                const totalValue = request.items.reduce((acc: number, it: any) => acc + (it.quantity * (it.estimatedCost || 0)), 0) || 0;
+                const setting = await tx.systemSetting.findUnique({ where: { key: 'PURCHASE_APPROVAL_RULES' } });
+                
+                if (setting && setting.value) {
+                    const rules = JSON.parse(setting.value);
+                    if (rules.enabled && Array.isArray(rules.levels)) {
+                        const sortedRules = rules.levels.sort((a: any, b: any) => b.limit - a.limit);
+                        const applicableRule = sortedRules.find((r: any) => totalValue >= r.limit);
+                        
+                        if (applicableRule) {
+                            const approvers = applicableRule.roles.map((r: string) => r.trim().toUpperCase());
+                            const currentRole = userRole.trim().toUpperCase();
+                            if (!approvers.includes(currentRole) && currentRole !== 'DIRETOR' && currentRole !== 'DIRECTOR') {
+                                throw new Error(`Seu cargo (${userRole}) não tem alçada para aprovar compras de R$ ${totalValue.toFixed(2)}. Cargos permitidos: ${applicableRule.roles.join(', ')}`);
+                            }
+                        }
+                    }
                 }
             }
 
