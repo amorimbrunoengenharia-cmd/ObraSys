@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 export async function GET() {
     const path = await import('path');
     const fs = await import('fs');
-    const vaultPath = path.join(process.cwd(), 'obsidian_vault');
+    const vaultPath = process.env.OBSIDIAN_VAULT_PATH || (process.env.VERCEL ? '/tmp/obrasys_vault' : path.join(process.cwd(), 'obsidian_vault'));
     const exists = fs.existsSync(vaultPath);
 
     let noteCount = 0;

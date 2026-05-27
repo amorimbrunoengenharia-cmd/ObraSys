@@ -12,7 +12,7 @@ import { Octokit } from '@octokit/rest';
 // pasta local que o Obsidian lê automaticamente via filesystem watch.
 // =====================================================================
 
-const VAULT_BASE = process.env.OBSIDIAN_VAULT_PATH || 'C:\\Users\\Usuario\\Desktop\\Projetos ObraSys\\ObraSys';
+const VAULT_BASE = process.env.OBSIDIAN_VAULT_PATH || (process.env.VERCEL ? '/tmp/obrasys_vault' : 'C:\\Users\\Usuario\\Desktop\\Projetos ObraSys\\ObraSys');
 
 const githubOwner = process.env.GITHUB_OWNER || '';
 const githubRepo = process.env.GITHUB_REPO || 'obrasys-obsidian';
@@ -542,6 +542,11 @@ _Gerado pelo WAY IA Center via Google Gemini em ${now.toLocaleString('pt-BR')}_
 export async function triggerObsidianSync(projectId?: number) {
     try {
         console.log("📓 Iniciando sincronização Obsidian...");
+        
+        if (process.env.VERCEL && !octokit) {
+            return { success: false, error: "Integração com GitHub não configurada para o Vercel.", message: "❌ Sincronização falhou: Você está na Vercel e o GITHUB_TOKEN não está configurado nas variáveis de ambiente." };
+        }
+
         ensureDir(VAULT_BASE);
 
         const [rdoCount, finCount, supCount, qualCount] = await Promise.all([
