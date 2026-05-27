@@ -9,7 +9,7 @@ export async function authenticateUser(email: string, password: string) {
     });
     
     if (user && user.password === password) {
-      return { success: true, user: { id: user.id, email: user.email, name: user.name, role: user.role } };
+      return { success: true, user: { id: user.id, email: user.email, name: user.name, role: user.role, avatarUrl: user.avatarUrl } };
     }
     
     return { success: false, error: "Credenciais inválidas!" };

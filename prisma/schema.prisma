@@ -144,6 +144,7 @@ model User {
   name     String
   password String
   role     String // Ex: 'Diretor', 'Gerente de Obras', 'Cliente / Investidor'
+  avatarUrl String?
 
   // Reset de Senha
   resetToken        String?

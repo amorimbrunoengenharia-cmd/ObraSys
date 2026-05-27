@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Lock, Moon, Sun, ArrowLeft, Save, ShieldCheck, Building2, X, Headset, Plus, HardHat, FileText, Bell, Key, Smartphone, Monitor, LogOut } from 'lucide-react';
+import { User, Mail, Lock, Moon, Sun, ArrowLeft, Save, ShieldCheck, Building2, X, Headset, Plus, HardHat, FileText, Bell, Key, Smartphone, Monitor, LogOut, Camera } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createItTicket } from '../actions/ti';
-import { getMyProfileData } from '../actions/profile';
+import { getMyProfileData, updateProfileAvatar } from '../actions/profile';
 import { useAuth } from '../../components/AuthContext';
 
 export default function PerfilUsuario() {
@@ -21,6 +21,39 @@ export default function PerfilUsuario() {
   const [pin, setPin] = useState('');
   const [emailNotif, setEmailNotif] = useState(true);
   const [whatsappNotif, setWhatsappNotif] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingAvatar(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await res.json();
+      if (data.url) {
+        await updateProfileAvatar(data.url);
+        // Force context update by re-setting user object with new avatar
+        login({ ...user!, avatarUrl: data.url });
+        // The page will react instantly
+      } else {
+        alert("Erro ao enviar imagem.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao enviar imagem.");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   useEffect(() => {
     const isDark = document.documentElement.classList.contains('dark');
@@ -95,8 +128,23 @@ export default function PerfilUsuario() {
           <button onClick={() => { logout(); router.push('/login'); }} className="absolute top-6 right-6 text-rose-500/70 hover:text-rose-500 transition-colors flex items-center gap-2 text-sm font-bold">
             <LogOut size={18} /> Sair
           </button>
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-2xl font-bold text-white border-4 border-[#162032] shadow-xl z-10">
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+          <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-3xl font-bold text-white border-4 border-[#162032] shadow-xl z-10 overflow-hidden relative transition-transform hover:scale-105">
+                {user?.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                    user?.name ? user.name.charAt(0).toUpperCase() : 'U'
+                )}
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="text-white w-8 h-8" />
+                </div>
+            </div>
+            {isUploadingAvatar && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full z-20">
+                    <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            )}
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} />
           </div>
           <div className="text-center md:text-left">
             <h1 className="text-2xl font-bold text-white">{user?.name || 'Carregando...'}</h1>

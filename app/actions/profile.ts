@@ -46,3 +46,20 @@ export async function getMyProfileData() {
     return { success: false, error: error.message };
   }
 }
+
+export async function updateProfileAvatar(avatarUrl: string) {
+  try {
+    const cookieStore = await cookies();
+    const userEmail = decodeURIComponent(cookieStore.get('userEmail')?.value || '');
+    if (!userEmail) return { success: false, error: "Não autenticado." };
+    
+    await prisma.user.update({
+      where: { email: userEmail },
+      data: { avatarUrl }
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
