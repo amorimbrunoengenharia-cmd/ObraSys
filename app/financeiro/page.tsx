@@ -1467,19 +1467,19 @@ export default function FinanceiroPage() {
                                         <input type="number" step="0.01" required value={formData.valorBruto} onChange={e => setFormData({...formData, valorBruto: e.target.value})} className="w-full p-4 bg-white dark:bg-slate-900 border-2 border-emerald-500/20 rounded-2xl text-xl font-black outline-none focus:border-emerald-500 shadow-sm"/>
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-black uppercase text-slate-500 mb-1 block">Caução Retida (%)</label>
+                                        <label className="text-[10px] font-black uppercase text-slate-500 mb-1 block">Caução Retida (R$)</label>
                                         <input type="number" step="0.01" value={formData.caucaoRetida} onChange={e => setFormData({...formData, caucaoRetida: e.target.value})} className="w-full p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none"/>
                                     </div>
                                 </div>
                                 
                                 <div className="grid grid-cols-3 gap-3">
                                     <div>
-                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">ISS (%)</label>
-                                        <input type="number" step="0.01" value={formData.iss} onChange={e => setFormData({...formData, iss: e.target.value})} className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none"/>
+                                        <label className="text-[10px] font-black uppercase text-slate-500 mb-1 block">ISS (R$)</label>
+                                        <input type="number" step="0.01" value={formData.iss} onChange={e => setFormData({...formData, iss: e.target.value})} className="w-full p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none"/>
                                     </div>
                                     <div>
-                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">INSS (%)</label>
-                                        <input type="number" step="0.01" value={formData.inss} onChange={e => setFormData({...formData, inss: e.target.value})} className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none"/>
+                                        <label className="text-[10px] font-black uppercase text-slate-500 mb-1 block">INSS (R$)</label>
+                                        <input type="number" step="0.01" value={formData.inss} onChange={e => setFormData({...formData, inss: e.target.value})} className="w-full p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none"/>
                                     </div>
                                     <div>
                                         <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Outros Retidos (R$)</label>
@@ -1496,9 +1496,9 @@ export default function FinanceiroPage() {
                                         {formatter.format(
                                             Number(formData.valorBruto || 0) - 
                                             Number(formData.impostosRetidos || 0) -
-                                            (Number(formData.valorBruto || 0) * (Number(formData.caucaoRetida || 0) / 100)) - 
-                                            (Number(formData.valorBruto || 0) * (Number(formData.iss || 0) / 100)) - 
-                                            (Number(formData.valorBruto || 0) * (Number(formData.inss || 0) / 100))
+                                            Number(formData.caucaoRetida || 0) - 
+                                            Number(formData.iss || 0) - 
+                                            Number(formData.inss || 0)
                                         )}
                                     </div>
                                 </div>
