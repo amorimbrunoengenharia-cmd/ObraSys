@@ -217,12 +217,22 @@ export default function IACenter({ proj }: { proj: any }) {
                     {historicoSwot.length === 0 ? (
                         <p className="text-xs font-bold text-slate-400 italic text-center py-8">Nenhum insight processado.</p>
                     ) : historicoSwot.map((e, i) => (
-                        <div key={i} className="relative pl-10 animate-in slide-in-from-left-2 duration-300">
-                            <div className="absolute left-0 top-1.5 w-6 h-6 rounded-full bg-white dark:bg-slate-900 border-2 border-emerald-500 flex items-center justify-center z-10">
+                        <div 
+                            key={i} 
+                            onClick={() => {
+                                // Mapear o objeto do DB para o formato esperado pelo frontend
+                                setSwotResult({
+                                    ...e.raw,
+                                    risco: e.raw.riskLevel || e.raw.risco
+                                });
+                            }}
+                            className="relative pl-10 animate-in slide-in-from-left-2 duration-300 cursor-pointer group hover:bg-slate-50 dark:hover:bg-slate-800/50 p-2 -ml-2 rounded-xl transition-colors"
+                        >
+                            <div className="absolute left-2 top-3.5 w-6 h-6 rounded-full bg-white dark:bg-slate-900 border-2 border-emerald-500 flex items-center justify-center z-10 group-hover:scale-110 transition-transform">
                                 <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
                             </div>
                             <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">{e.data}</p>
-                            <h4 className="font-black text-sm text-slate-700 dark:text-slate-200">{e.fonte}</h4>
+                            <h4 className="font-black text-sm text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 transition-colors">{e.fonte}</h4>
                             <p className="text-xs text-slate-500 font-medium leading-relaxed">{e.obs}</p>
                         </div>
                     ))}
