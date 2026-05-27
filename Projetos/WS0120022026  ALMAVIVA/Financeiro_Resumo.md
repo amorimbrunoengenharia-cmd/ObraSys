@@ -1,7 +1,7 @@
 ---
 tags: [financeiro, fpa, ws0120022026-almaviva]
 projeto: "WS01_20.02.2026 - ALMAVIVA"
-updated: 2026-05-27T21:05:54.840Z
+updated: 2026-05-27T21:08:32.588Z
 ---
 
 # 💰 Painel Financeiro — WS01_20.02.2026 - ALMAVIVA
@@ -11,10 +11,10 @@ updated: 2026-05-27T21:05:54.840Z
 |-----------|-------|
 | Orçamento Base | R$ 73.084,80 |
 | Total Recebido | R$ 27.603,53 |
-| Total Despesas | R$ 23.308,00 |
-| Total Pago | R$ 23.308,00 |
-| **Saldo Operacional** | **R$ 4.295,54** |
-| Margem | 15.6% |
+| Total Despesas | R$ 23.593,00 |
+| Total Pago | R$ 23.593,00 |
+| **Saldo Operacional** | **R$ 4.010,54** |
+| Margem | 14.5% |
 
 ## Top 10 Despesas
 | # | Descrição | Fornecedor | Valor | Status |
@@ -23,7 +23,8 @@ updated: 2026-05-27T21:05:54.840Z
 | 2 | BM BM03 - TW TERRAPLANAGEM E CONCRETO LISO | TW TERRAPLANAGEM E CONCRETO LISO | R$ 6.925,80 | Pago |
 | 3 | BM BM02 - TW TERRAPLANAGEM E CONCRETO LISO | TW TERRAPLANAGEM E CONCRETO LISO | R$ 4.680,00 | Pago |
 | 4 | BM BM04 - TW TERRAPLANAGEM E CONCRETO LISO | TW TERRAPLANAGEM E CONCRETO LISO | R$ 4.617,20 | Pago |
-| 5 | Alimentação gestores | DELVIO DE FREITAS PAGAN ARACATUBA | R$ 85,00 | Pago |
+| 5 | Emissão ART | CREA SP | R$ 285,00 | Pago |
+| 6 | Alimentação gestores | DELVIO DE FREITAS PAGAN ARACATUBA | R$ 85,00 | Pago |
 
 ## Últimas Medições de Contratos
 | Fornecedor | Período | Valor Medido | Status |
@@ -34,4 +35,4 @@ updated: 2026-05-27T21:05:54.840Z
 | TW TERRAPLANAGEM E CONCRETO LISO | Período: Fev/2026 | R$ 7.000,00 | Aprovado |
 
 ---
-_Gerado automaticamente pelo ObraSys em 27/05/2026, 21:05:54_
+_Gerado automaticamente pelo ObraSys em 27/05/2026, 21:08:32_
