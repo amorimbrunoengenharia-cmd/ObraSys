@@ -90,7 +90,6 @@ export default async function Home() {
 
     const formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
     let criticalAlertsCount = 0;
-    let projetosNoPrazoCount = 0;
 
     const initialObras = projects.map(p => {
         const spent = p.financials.filter(f => f.tipo === 'SAÍDA' && f.status === 'Pago').reduce((acc, curr) => acc + (curr.valorBruto || 0), 0);
@@ -135,10 +134,6 @@ export default async function Home() {
             const isDone = t.status === 'Concluído' || t.columnId === 'done';
             return !isDone && t.endDate && new Date(t.endDate) < today;
         }).length;
-
-        // Projetos no prazo: sem tarefas atrasadas (apenas projetos ativos)
-        const isActive = p.status !== 'Concluído' && p.status !== 'Paralisado';
-        if (isActive && overdueTasks === 0) projetosNoPrazoCount++;
 
         // Último RDO — Indicador de reporting para o Diretor
         const lastRdo = p.rdos?.[0];
@@ -272,8 +267,30 @@ export default async function Home() {
     const compactFormatter = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
 
     const activeProjects = projects.filter(p => p.status !== 'Concluído' && p.status !== 'Distrato' && !(p.name && p.name.toUpperCase().startsWith('SEDE') && !p.name.toUpperCase().includes('REFORMA')));
+    
+    let totalActiveProjectsBudget = 0;
+    let weightedOnScheduleSum = 0;
+    let simpleOnScheduleSum = 0;
+
+    activeProjects.forEach(p => {
+        const budget = p.budget || 0;
+        
+        const overdueTasks = p.tasks.filter(t => {
+            const isDone = t.status === 'Concluído' || t.columnId === 'done';
+            return !isDone && t.endDate && new Date(t.endDate) < today;
+        }).length;
+
+        const isOnSchedule = overdueTasks === 0 ? 1 : 0;
+
+        totalActiveProjectsBudget += budget;
+        weightedOnScheduleSum += isOnSchedule * budget;
+        simpleOnScheduleSum += isOnSchedule;
+    });
+
     const projetosNoPrazoPercent = activeProjects.length > 0 
-        ? Math.round((projetosNoPrazoCount / activeProjects.length) * 100) 
+        ? (totalActiveProjectsBudget > 0
+            ? Math.round((weightedOnScheduleSum / totalActiveProjectsBudget) * 100)
+            : Math.round((simpleOnScheduleSum / activeProjects.length) * 100))
         : 100;
 
     const projectIds = projects.map(p => p.id);
