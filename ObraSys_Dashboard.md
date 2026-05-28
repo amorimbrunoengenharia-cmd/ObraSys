@@ -1,6 +1,6 @@
 ---
 tags: [obrasys, dashboard, indice]
-updated: 2026-05-27T23:49:33.568Z
+updated: 2026-05-28T14:07:42.319Z
 ---
 
 # 🏗️ ObraSys — Índice de Projetos
@@ -12,4 +12,4 @@ updated: 2026-05-27T23:49:33.568Z
 | [[Projetos/SEDE  ARAÇATUBA/Financeiro_Resumo\|SEDE - ARAÇATUBA]] | Em Execução | R$ 0,00 | 0 | 0 | 0 |
 
 ---
-_Última sincronização: 27/05/2026, 23:49:33_
+_Última sincronização: 28/05/2026, 14:07:42_
