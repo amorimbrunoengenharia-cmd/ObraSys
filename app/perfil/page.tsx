@@ -58,9 +58,13 @@ export default function PerfilUsuario() {
   };
 
   const initialThemeRef = React.useRef<'dark' | 'light'>('light');
+  const isInitializedRef = React.useRef(false);
 
   useEffect(() => {
-    initialThemeRef.current = theme;
+    if (!isInitializedRef.current) {
+      initialThemeRef.current = theme;
+      isInitializedRef.current = true;
+    }
     setIsDarkMode(theme === 'dark');
     
     // Carregar dados completos do perfil
@@ -158,7 +162,7 @@ export default function PerfilUsuario() {
                 </div>
              </div>
              <button onClick={toggleTheme} className={`w-16 h-9 rounded-full flex items-center px-1 transition-colors ${isDarkMode ? 'bg-[#0B1121] border border-emerald-500' : 'bg-slate-300'}`}>
-                <div className={`w-7 h-7 rounded-full shadow-md transform transition-transform ${isDarkMode ? 'translate-x-7 bg-emerald-500' : 'bg-white'}`}></div>
+                <div className={`w-7 h-7 rounded-full shadow-md transform transition-transform ${isDarkMode ? 'translate-x-7 bg-emerald-500' : 'translate-x-0 bg-white'}`}></div>
              </button>
           </div>
           
