@@ -6,6 +6,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Link from 'next/link';
 import { Building2, User, ArrowRight, Activity, MapPin } from 'lucide-react';
+import { useTheme } from './ThemeContext';
 
 // Fix for default Leaflet icons in Next.js
 const DefaultIcon = L.icon({
@@ -38,6 +39,7 @@ interface MapProps {
 }
 
 export default function MapComponent({ projects }: MapProps) {
+    const { theme } = useTheme();
     // Coordenada Fallback (Araçatuba - Sede da WayService)
     const DEFAULT_CENTER: [number, number] = [-21.2089, -50.4404];
 
@@ -46,12 +48,15 @@ export default function MapComponent({ projects }: MapProps) {
             <MapContainer 
                 center={DEFAULT_CENTER} 
                 zoom={12} 
-                style={{ height: '100%', width: '100%', background: '#0B1121' }}
+                style={{ height: '100%', width: '100%', background: theme === 'dark' ? '#0B1121' : '#f8fafc' }}
                 scrollWheelZoom={true}
             >
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    url={theme === 'dark' 
+                      ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                      : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    }
                 />
                 
                 {projects.map((project) => {

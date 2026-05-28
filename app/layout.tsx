@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 // @ts-ignore
 import "./globals.css";
 import { AuthProvider } from "../components/AuthContext";
+import { ThemeProvider } from "../components/ThemeContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,23 +22,25 @@ export default function RootLayout({
     <html lang="pt-br" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <AuthProvider>
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                (function() {
-                  try {
-                    var savedTheme = localStorage.getItem('theme');
-                    if (savedTheme === 'dark') {
-                      document.documentElement.classList.add('dark');
-                    } else {
-                      document.documentElement.classList.remove('dark');
-                    }
-                  } catch (e) {}
-                })();
-              `,
-            }}
-          />
-          {children}
+          <ThemeProvider>
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `
+                  (function() {
+                    try {
+                      var savedTheme = localStorage.getItem('theme');
+                      if (savedTheme === 'dark') {
+                        document.documentElement.classList.add('dark');
+                      } else {
+                        document.documentElement.classList.remove('dark');
+                      }
+                    } catch (e) {}
+                  })();
+                `,
+              }}
+            />
+            {children}
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

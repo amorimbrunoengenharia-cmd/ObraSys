@@ -271,6 +271,15 @@ export default function ContractHistoryPage() {
 
     const formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
+    const { isExceeded, isPendingOS, isMissingSignature } = useMemo(() => {
+        const today = new Date();
+        const novaDataEntrega = stats.novaDataEntrega;
+        const isExceeded = !!(novaDataEntrega && today > novaDataEntrega && project?.status !== 'Concluído');
+        const isPendingOS = !project?.osDate;
+        const isMissingSignature = !project?.signatureDate;
+        return { isExceeded, isPendingOS, isMissingSignature };
+    }, [stats.novaDataEntrega, project?.status, project?.osDate, project?.signatureDate]);
+
     if (isLoading) return <div className="min-h-screen bg-slate-50 dark:bg-[#0B1121] flex items-center justify-center"><div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
 
     if (!project) return <div className="min-h-screen bg-slate-50 dark:bg-[#0B1121] flex flex-col items-center justify-center gap-4 text-slate-500"><AlertCircle size={48}/><p>Projeto não encontrado.</p><button onClick={() => router.back()} className="text-blue-500 font-bold">Voltar</button></div>;
@@ -295,9 +304,24 @@ export default function ContractHistoryPage() {
                         )}
                     </h1>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        {project.clientName && <span><span className="text-slate-300 dark:text-slate-600">Cliente:</span> {project.clientName}</span>}
-                        {project.signatureDate && <span><span className="text-slate-300 dark:text-slate-600">Assinatura:</span> {new Date(project.signatureDate).toLocaleDateString('pt-BR')}</span>}
-                        {project.osDate && <span><span className="text-slate-300 dark:text-slate-600">Ordem de Serviço:</span> {new Date(project.osDate).toLocaleDateString('pt-BR')}</span>}
+                        <span>
+                            <span className="text-slate-500 dark:text-slate-400">Cliente:</span>{' '}
+                            <span className={project.clientName ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600 italic font-medium'}>
+                                {project.clientName || 'Não definido'}
+                            </span>
+                        </span>
+                        <span>
+                            <span className="text-slate-500 dark:text-slate-400">Assinatura:</span>{' '}
+                            <span className={project.signatureDate ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600 italic font-medium'}>
+                                {project.signatureDate ? new Date(project.signatureDate).toLocaleDateString('pt-BR') : 'Não definida'}
+                            </span>
+                        </span>
+                        <span>
+                            <span className="text-slate-500 dark:text-slate-400">Ordem de Serviço:</span>{' '}
+                            <span className={project.osDate ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600 italic font-medium'}>
+                                {project.osDate ? new Date(project.osDate).toLocaleDateString('pt-BR') : 'Não emitida'}
+                            </span>
+                        </span>
                     </div>
                 </div>
                 <div className="ml-auto flex gap-3">
@@ -425,6 +449,26 @@ export default function ContractHistoryPage() {
                                         <p className="text-xs font-black text-slate-700 dark:text-slate-300">{stats.baseDays + stats.additionalDays} Dias</p>
                                     </div>
                                 </div>
+
+                                {(isExceeded || isPendingOS || isMissingSignature) && (
+                                    <div className="mt-4 flex flex-wrap gap-2">
+                                        {isExceeded && (
+                                            <span className="px-2 py-1 bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400 rounded text-[9px] font-black uppercase tracking-widest border border-red-200 dark:border-red-900/50 flex items-center gap-1">
+                                                <AlertCircle size={10}/> Prazo Excedido
+                                            </span>
+                                        )}
+                                        {isPendingOS && (
+                                            <span className="px-2 py-1 bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 rounded text-[9px] font-black uppercase tracking-widest border border-amber-200 dark:border-amber-900/50">
+                                                Aguardando OS
+                                            </span>
+                                        )}
+                                        {isMissingSignature && (
+                                            <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 rounded text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700">
+                                                Sem Assinatura Contratual
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -705,7 +749,7 @@ export default function ContractHistoryPage() {
                                                             {new Date(m.expectedDate).toLocaleDateString('pt-BR')}
                                                         </span>
                                                     ) : (
-                                                        <span className="text-slate-300 text-[10px]">---</span>
+                                                        <span className="text-slate-400 dark:text-slate-600 text-[10px]">---</span>
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-4 text-center">

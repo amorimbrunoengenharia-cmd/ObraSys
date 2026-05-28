@@ -5,8 +5,8 @@ import { X } from 'lucide-react';
 // Botão do Menu Lateral
 export function BotaoMenu({ icone, texto, ativo, destaque, onClick }: any) {
     const base = "flex items-center gap-3 w-full p-3 rounded-lg mb-1 transition-all cursor-pointer ";
-    if (destaque) return <button onClick={onClick} className={base + (ativo ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white' : 'text-blue-400 border border-blue-500/20 hover:bg-blue-500/10')}>{icone} <span className="font-bold">{texto}</span></button>;
-    return <button onClick={onClick} className={base + (ativo ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:bg-slate-800')}>{icone} {texto}</button>;
+    if (destaque) return <button onClick={onClick} className={base + (ativo ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white' : 'text-blue-500 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 hover:bg-blue-50 dark:hover:bg-blue-500/10')}>{icone} <span className="font-bold">{texto}</span></button>;
+    return <button onClick={onClick} className={base + (ativo ? 'bg-emerald-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white')}>{icone} {texto}</button>;
 }
 
 // Card de KPI (Pequeno)

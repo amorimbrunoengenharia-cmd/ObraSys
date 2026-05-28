@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 import { Wallet, ArrowUpRight, ArrowDownRight, AlertCircle, TrendingDown, BookOpen, RefreshCw, Trash2, Edit3, Search, Plus, Upload, Save, Filter, ShoppingCart, Truck, CheckCircle } from 'lucide-react';
 import { exportFinanceiroToObsidian } from '../../app/actions/obsidian';
+import { useTheme } from '../ThemeContext';
 import { 
     createFinancialRecord, 
     updateFinancialRecord,
@@ -24,6 +25,7 @@ import Link from 'next/link';
 const COLORS = ['#10b981', '#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6'];
 
 export default function Financeiro({ proj }: any) {
+  const { theme } = useTheme();
   const [tab, setTab] = useState('resumo');
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncDone, setSyncDone] = useState(false);
@@ -241,13 +243,20 @@ export default function Financeiro({ proj }: any) {
               <div className="h-80 mt-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={fluxoMensal} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#cbd5e1'} opacity={theme === 'dark' ? 0.3 : 0.6} />
                       <XAxis dataKey="m" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} dy={10} fontWeight={800} />
                       <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} tickFormatter={v => `R$${(v/1000).toFixed(0)}k`}/>
                       <Tooltip 
                           formatter={(v: any) => formatter.format(v)} 
-                          contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '16px', color: '#fff', padding: '16px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.5)' }}
-                          cursor={{fill: '#334155', opacity: 0.1}}
+                          contentStyle={{ 
+                              backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff', 
+                              border: theme === 'dark' ? '1px solid #1e293b' : '1px solid #e2e8f0', 
+                              borderRadius: '16px', 
+                              color: theme === 'dark' ? '#fff' : '#0f172a', 
+                              padding: '16px', 
+                              boxShadow: theme === 'dark' ? '0 10px 15px -3px rgb(0 0 0 / 0.5)' : '0 10px 15px -3px rgb(0 0 0 / 0.1)' 
+                          }}
+                          cursor={{fill: theme === 'dark' ? '#334155' : '#f1f5f9', opacity: theme === 'dark' ? 0.1 : 0.4}}
                       />
                       <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', paddingTop: '20px' }} />
                       <Bar dataKey="e" name="Entradas (R$)" fill="#10b981" radius={[6,6,0,0]} barSize={32} />

@@ -7,10 +7,12 @@ import { useRouter } from 'next/navigation';
 import { createItTicket } from '../actions/ti';
 import { getMyProfileData, updateProfileAvatar } from '../actions/profile';
 import { useAuth } from '../../components/AuthContext';
+import { useTheme } from '../../components/ThemeContext';
 
 export default function PerfilUsuario() {
   const router = useRouter();
   const { user, login, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
@@ -55,9 +57,11 @@ export default function PerfilUsuario() {
     }
   };
 
+  const initialThemeRef = React.useRef<'dark' | 'light'>('light');
+
   useEffect(() => {
-    const isDark = document.documentElement.classList.contains('dark');
-    setIsDarkMode(isDark);
+    initialThemeRef.current = theme;
+    setIsDarkMode(theme === 'dark');
     
     // Carregar dados completos do perfil
     getMyProfileData().then(data => {
@@ -67,22 +71,18 @@ export default function PerfilUsuario() {
          setDocuments(data.employee?.documents || []);
       }
     });
-  }, []);
+  }, [theme]);
 
   const toggleTheme = () => {
-    const html = document.documentElement;
-    if (isDarkMode) {
-      html.classList.remove('dark');
-      setIsDarkMode(false);
-    } else {
-      html.classList.add('dark');
-      setIsDarkMode(true);
-    }
+    const nextTheme = !isDarkMode ? 'dark' : 'light';
+    setTheme(nextTheme);
+    setIsDarkMode(!isDarkMode);
   };
 
   const handleSave = () => {
     setIsLoading(true);
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    const nextTheme = isDarkMode ? 'dark' : 'light';
+    setTheme(nextTheme);
     setTimeout(() => {
       setIsLoading(false);
       router.push('/'); 
@@ -109,12 +109,7 @@ export default function PerfilUsuario() {
   };
 
   const handleCancel = () => {
-    const saved = localStorage.getItem('theme');
-    if (saved === 'dark') {
-        document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark');
-    }
+    setTheme(initialThemeRef.current);
     router.back();
   };
 

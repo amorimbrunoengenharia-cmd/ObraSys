@@ -178,13 +178,13 @@ export default function ProjectPage() {
     <div className="flex h-screen bg-slate-50 dark:bg-[#0B1121] text-slate-900 dark:text-slate-100 font-sans overflow-hidden transition-colors duration-300 relative">
       <NotificationCenter isOpen={showNotif} notifications={notifications} onClose={() => setShowNotif(false)} onClear={() => setNotifications([])} />
       
-      <aside className="w-64 bg-slate-900 dark:bg-[#060b16] text-white flex flex-col shadow-2xl hidden md:flex border-r border-slate-800">
-        <div className="p-6 border-b border-slate-800 flex items-center gap-3 cursor-pointer" onClick={() => window.location.href = '/'}><div className="bg-gradient-to-br from-emerald-400 to-blue-600 p-2 rounded-lg"><HardHat size={24}/></div><div><h1 className="text-xl font-bold">ObraSys</h1><p className="text-[10px] text-emerald-400 font-bold uppercase">Way Tech</p></div></div>
+      <aside className="w-64 bg-white dark:bg-[#060b16] text-slate-800 dark:text-white flex flex-col shadow-2xl hidden md:flex border-r border-slate-200 dark:border-slate-800">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3 cursor-pointer" onClick={() => window.location.href = '/'}><div className="bg-gradient-to-br from-emerald-400 to-blue-600 p-2 rounded-lg"><HardHat size={24} className="text-white"/></div><div><h1 className="text-xl font-bold text-slate-900 dark:text-white">ObraSys</h1><p className="text-[10px] text-emerald-500 dark:text-emerald-400 font-bold uppercase">Way Tech</p></div></div>
         
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <Link href="/"><BotaoMenu icone={<ArrowLeft size={18}/>} texto="Voltar para Obras" /></Link>
           
-          <p className="text-xs font-bold text-slate-500 uppercase px-3 mt-6 mb-2">Gestão</p>
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase px-3 mt-6 mb-2">Gestão</p>
           {canAccess('visao-geral') && <div onClick={()=>setActiveTab('visao-geral')}><BotaoMenu icone={<LayoutDashboard size={18}/>} texto="Visão Geral" ativo={activeTab==='visao-geral'} /></div>}
           {canAccess('portal-cliente') && <div onClick={()=>setActiveTab('portal-cliente')}><BotaoMenu icone={<Users size={18}/>} texto="Portal do Cliente" ativo={activeTab==='portal-cliente'} /></div>}
           {canAccess('financeiro') && <div onClick={()=>setActiveTab('financeiro')}><BotaoMenu icone={<DollarSign size={18}/>} texto="Financeiro" ativo={activeTab==='financeiro'} /></div>}
@@ -195,25 +195,25 @@ export default function ProjectPage() {
           {canAccess('ged') && <div onClick={()=>setActiveTab('ged')}><BotaoMenu icone={<Folder size={18}/>} texto="Projetos & GED" ativo={activeTab==='ged'} /></div>}
           {canAccess('solicitacoes') && <div onClick={()=>setActiveTab('solicitacoes')}><BotaoMenu icone={<Send size={18}/>} texto="Aprovações Cliente" ativo={activeTab==='solicitacoes'} /></div>}
           
-          <p className="text-xs font-bold text-slate-500 uppercase px-3 mt-6 mb-2">Campo</p>
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase px-3 mt-6 mb-2">Campo</p>
           {canAccess('rdo') && <div onClick={()=>setActiveTab('rdo')}><BotaoMenu icone={<HardHat size={18}/>} texto="RDO Digital" ativo={activeTab==='rdo'} /></div>}
           {canAccess('qualidade') && <div onClick={()=>setActiveTab('qualidade')}><BotaoMenu icone={<ShieldCheck size={18}/>} texto="Qualidade e Segurança" ativo={activeTab==='qualidade'} /></div>}
           
           {(user?.role === 'Diretor' || user?.role === 'TI' || user?.role === 'RH / DP') && (
               <>
-                <p className="text-xs font-bold text-slate-500 uppercase px-3 mt-6 mb-2">Admin</p>
-                {canAccess('ia-center') && <div onClick={()=>setActiveTab('ia-center')}><BotaoMenu icone={<BrainCircuit size={18}/>} texto="Way IA Center" ativo={activeTab==='ia-center'} /></div>}
+                <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase px-3 mt-6 mb-2">Admin</p>
+                {canAccess('ia-center') && <div onClick={()=>setActiveTab('ia-center')}><BotaoMenu icone={<BrainCircuit size={18}/>} texto="Way Way IA" ativo={activeTab==='ia-center'} /></div>}
                 <div onClick={()=>setActiveTab('config')}><BotaoMenu icone={<Settings size={18}/>} texto="Configurações" ativo={activeTab==='config'} /></div>
               </>
           )}
         </nav>
         
-        <div className="p-4 bg-slate-950 dark:bg-[#020617] border-t border-slate-800">
-             <Link href="/perfil" className="flex items-center gap-3 px-2 mb-2 hover:bg-slate-800 py-2 rounded-lg transition-colors cursor-pointer group">
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-xs shadow-md group-hover:scale-105 transition-transform">{user?.name.charAt(0)}</div>
-                <div className="overflow-hidden"><p className="text-xs font-bold truncate group-hover:text-blue-400 transition-colors">{user?.name}</p><p className="text-[10px] text-slate-400 truncate">{user?.role}</p></div>
+        <div className="p-4 bg-slate-50 dark:bg-[#020617] border-t border-slate-200 dark:border-slate-800">
+             <Link href="/perfil" className="flex items-center gap-3 px-2 mb-2 hover:bg-slate-100 dark:hover:bg-slate-800 py-2 rounded-lg transition-colors cursor-pointer group">
+                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-xs text-white shadow-md group-hover:scale-105 transition-transform">{user?.name.charAt(0)}</div>
+                <div className="overflow-hidden"><p className="text-xs font-bold truncate group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors text-slate-800 dark:text-white">{user?.name}</p><p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{user?.role}</p></div>
              </Link>
-             <button onClick={() => logout()} className="w-full py-1 bg-slate-800 hover:text-red-400 text-slate-400 text-xs rounded flex items-center justify-center gap-1"><LogOut size={12}/> Sair</button>
+             <button onClick={() => logout()} className="w-full py-1.5 bg-slate-200 dark:bg-slate-800 hover:text-red-500 dark:hover:text-red-400 text-slate-500 dark:text-slate-400 text-xs font-bold rounded flex items-center justify-center gap-1"><LogOut size={12}/> Sair</button>
         </div>
       </aside>
 

@@ -6,12 +6,14 @@ import {
   TrendingUp, TrendingDown, MapPin, BrainCircuit, ImageIcon, Clock, Target, AlertCircle
 } from 'lucide-react';
 import { CardResumo } from '../Shared';
+import { useTheme } from '../ThemeContext';
 
 import { getLiveWeather, getWorksiteStatus } from '../../app/actions/weather';
 
 import { calculateSCurve } from '../../lib/utils/sCurve';
 
 export default function VisaoGeral({ proj, localPosts, setActiveTab }: any) {
+  const { theme } = useTheme();
   // --- ESTADOS DINÂMICOS (Clima e Status do Canteiro) ---
   const [clima, setClima] = useState({ temp: '--', cond: 'Carregando...', icon: <CloudSun size={12}/> });
   const [canteiro, setCanteiro] = useState({ label: 'Verificando...', color: 'text-slate-500' });
@@ -124,13 +126,13 @@ export default function VisaoGeral({ proj, localPosts, setActiveTab }: any) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-slate-900 border border-slate-700 p-4 rounded-2xl shadow-2xl backdrop-blur-md">
+        <div className={`${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'} border p-4 rounded-2xl shadow-2xl backdrop-blur-md`}>
           <p className="text-[10px] font-black text-slate-400 uppercase mb-2">{label}</p>
           {payload.map((entry: any, index: number) => (
             <div key={index} className="flex items-center gap-2 mt-1">
               <div className="w-2 h-2 rounded-full" style={{backgroundColor: entry.color}}></div>
-              <span className="text-xs font-bold text-white">{entry.name}:</span>
-              <span className="text-xs font-black text-white">
+              <span className={`text-xs font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-700'}`}>{entry.name}:</span>
+              <span className={`text-xs font-black ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
                 {entry.name.includes('%') || entry.name.includes('Avanço')
                   ? `${entry.value.toFixed(1)}%` 
                   : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.value)}
@@ -241,9 +243,9 @@ export default function VisaoGeral({ proj, localPosts, setActiveTab }: any) {
                                             <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.05} />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: '900', fill: '#94a3b8'}} dy={10} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: '900', fill: '#94a3b8'}} tickFormatter={(v) => `${v}%`} />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#cbd5e1'} opacity={theme === 'dark' ? 0.05 : 0.4} />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: '900', fill: theme === 'dark' ? '#94a3b8' : '#64748b'}} dy={10} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: '900', fill: theme === 'dark' ? '#94a3b8' : '#64748b'}} tickFormatter={(v) => `${v}%`} />
                                     <Tooltip content={<CustomTooltip />} />
                                     <Legend verticalAlign="top" align="left" iconType="plainline" iconSize={15} wrapperStyle={{paddingBottom: '20px', fontSize: '9px', fontWeight: '900', textTransform: 'uppercase'}} />
                                     <Area type="monotone" dataKey="planejado" stroke="#3b82f6" strokeWidth={2} fillOpacity={0} name="Planejado (%)" />
@@ -360,8 +362,8 @@ export default function VisaoGeral({ proj, localPosts, setActiveTab }: any) {
                                     } catch (e) {}
                                     return proj.address || proj.location || 'São Paulo, SP';
                                 })()
-                            )}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
-                            style={{ filter: 'invert(90%) hue-rotate(180deg)' }} // Deixa o mapa no estilo dark
+                             )}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                            style={{ filter: theme === 'dark' ? 'invert(90%) hue-rotate(180deg)' : 'none' }} // Deixa o mapa no estilo dark apenas em dark mode
                         ></iframe>
                     </div>
 

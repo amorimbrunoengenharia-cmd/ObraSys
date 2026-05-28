@@ -4,6 +4,7 @@ import { Building2, Users, AlertTriangle, MapPin, ArrowRight, DollarSign, Activi
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../AuthContext';
+import { useTheme } from '../ThemeContext';
 import { canAccessPage } from '../../lib/permissions';
 import { ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, AreaChart, Area, LineChart, Line, PieChart, Pie, Cell, ComposedChart, Bar, Legend } from 'recharts';
 import { reviewPurchaseRequest } from '../../app/actions/supply';
@@ -11,6 +12,7 @@ import NotificationBell from '../NotificationBell';
 
 export default function GlobalDashboard({ initialKpis, initialObras, initialChartData, initialEficienciaData, initialDreData }: { initialKpis?: any, initialObras?: any[], initialChartData?: any[], initialEficienciaData?: any[], initialDreData?: any[] }) {
   const { user, logout } = useAuth();
+  const { theme } = useTheme();
   const router = useRouter();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
@@ -350,19 +352,32 @@ export default function GlobalDashboard({ initialKpis, initialObras, initialChar
                                             <stop offset="95%" stopColor="#ef4444" stopOpacity={0.3}/>
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#cbd5e1'} opacity={theme === 'dark' ? 0.15 : 0.5} />
                                     <XAxis dataKey="mes" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickMargin={10} />
                                     <YAxis hide />
                                     <Tooltip 
-                                        contentStyle={{backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', color: '#fff', fontSize: '12px', fontWeight: 'bold', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'}} 
+                                        contentStyle={{
+                                            backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
+                                            border: theme === 'dark' ? '1px solid #1e293b' : '1px solid #e2e8f0',
+                                            borderRadius: '12px',
+                                            color: theme === 'dark' ? '#fff' : '#0f172a',
+                                            fontSize: '12px',
+                                            fontWeight: 'bold',
+                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                                        }} 
                                         formatter={(value: any) => formatter.format(value)}
-                                        labelStyle={{ color: '#94a3b8', marginBottom: '8px', borderBottom: '1px solid #334155', paddingBottom: '4px' }}
-                                        cursor={{fill: '#334155', opacity: 0.1}}
+                                        labelStyle={{ 
+                                            color: theme === 'dark' ? '#94a3b8' : '#64748b', 
+                                            marginBottom: '8px', 
+                                            borderBottom: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0', 
+                                            paddingBottom: '4px' 
+                                        }}
+                                        cursor={{fill: theme === 'dark' ? '#334155' : '#f1f5f9', opacity: theme === 'dark' ? 0.1 : 0.4}}
                                     />
                                     <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} iconType="circle" />
                                     <Bar name="Receitas" dataKey="receitas" fill="url(#colorReceita)" radius={[4, 4, 0, 0]} barSize={16} />
                                     <Bar name="Despesas" dataKey="despesas" fill="url(#colorDespesa)" radius={[4, 4, 0, 0]} barSize={16} />
-                                    <Line name="Saldo do Mês" type="monotone" dataKey="saldo" stroke="#fbbf24" strokeWidth={3} dot={{ fill: '#fbbf24', strokeWidth: 2, r: 4, stroke: '#0B1121' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                                    <Line name="Saldo do Mês" type="monotone" dataKey="saldo" stroke="#fbbf24" strokeWidth={3} dot={{ fill: '#fbbf24', strokeWidth: 2, r: 4, stroke: theme === 'dark' ? '#0B1121' : '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
                                 </ComposedChart>
                             </ResponsiveContainer>
                         </div>
@@ -400,11 +415,19 @@ export default function GlobalDashboard({ initialKpis, initialObras, initialChar
                         <div className="h-64">
                             <ResponsiveContainer width="100%" height="100%" minHeight={300}>
                                 <ComposedChart data={eficiencia_por_mes}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155"/>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#cbd5e1'} opacity={theme === 'dark' ? 1 : 0.5} />
                                     <XAxis dataKey="mes" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false}/>
                                     <YAxis yAxisId="left" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
                                     <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} tickFormatter={(val) => `${val}%`} />
-                                    <Tooltip contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '8px', color: '#fff'}} cursor={{fill: '#334155', opacity: 0.2}} />
+                                    <Tooltip 
+                                        contentStyle={{
+                                            backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
+                                            border: theme === 'dark' ? 'none' : '1px solid #e2e8f0',
+                                            borderRadius: '8px',
+                                            color: theme === 'dark' ? '#fff' : '#0f172a'
+                                        }} 
+                                        cursor={{fill: theme === 'dark' ? '#334155' : '#f1f5f9', opacity: 0.2}} 
+                                    />
                                     <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                                     <Bar yAxisId="left" dataKey="tarefas" name="Tarefas Previstas" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} />
                                     <Bar yAxisId="left" dataKey="concluidas" name="Tarefas Concluídas" fill="#10b981" radius={[4, 4, 0, 0]} barSize={12} />
@@ -432,7 +455,14 @@ export default function GlobalDashboard({ initialKpis, initialObras, initialChar
                                             <Cell key={`cell-${index}`} fill={entry.color} />
                                         ))}
                                     </Pie>
-                                    <Tooltip contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '8px', color: '#fff'}}/>
+                                    <Tooltip 
+                                        contentStyle={{
+                                            backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
+                                            border: theme === 'dark' ? 'none' : '1px solid #e2e8f0',
+                                            borderRadius: '8px',
+                                            color: theme === 'dark' ? '#fff' : '#0f172a'
+                                        }}
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>

@@ -2,10 +2,12 @@
 import React, { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { TrendingUp, Users, Tag, DollarSign, Download, Printer, FileText, Truck } from 'lucide-react';
+import { useTheme } from '../ThemeContext';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
 export default function SuppliesAnalytics({ requests, suppliers, project }: any) {
+    const { theme } = useTheme();
     const handlePrint = () => {
         window.print();
     };
@@ -140,7 +142,13 @@ export default function SuppliesAnalytics({ requests, suppliers, project }: any)
                             </Pie>
                             <Tooltip 
                                 formatter={(value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)}
-                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                contentStyle={{ 
+                                    backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff', 
+                                    border: theme === 'dark' ? 'none' : '1px solid #e2e8f0', 
+                                    borderRadius: '12px', 
+                                    color: theme === 'dark' ? '#fff' : '#0f172a',
+                                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' 
+                                }}
                             />
                             <Legend verticalAlign="bottom" height={36}/>
                         </PieChart>
@@ -163,7 +171,7 @@ export default function SuppliesAnalytics({ requests, suppliers, project }: any)
                 <div className="h-[300px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={dataBySupplier} layout="vertical" margin={{ left: 20 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#33415520" />
+                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme === 'dark' ? '#334155' : '#cbd5e1'} opacity={theme === 'dark' ? 0.15 : 0.5} />
                             <XAxis type="number" hide />
                             <YAxis 
                                 dataKey="name" 
@@ -173,7 +181,13 @@ export default function SuppliesAnalytics({ requests, suppliers, project }: any)
                             />
                             <Tooltip 
                                 formatter={(value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)}
-                                cursor={{ fill: '#33415510' }}
+                                contentStyle={{ 
+                                    backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff', 
+                                    border: theme === 'dark' ? 'none' : '1px solid #e2e8f0', 
+                                    borderRadius: '12px', 
+                                    color: theme === 'dark' ? '#fff' : '#0f172a' 
+                                }}
+                                cursor={{ fill: theme === 'dark' ? '#33415510' : '#f1f5f940' }}
                             />
                             <Bar dataKey="value" fill="#3b82f6" radius={[0, 10, 10, 0]} barSize={20} />
                         </BarChart>
