@@ -1,7 +1,7 @@
 ---
 tags: [financeiro, fpa, sede-araçatuba]
 projeto: "SEDE - ARAÇATUBA"
-updated: 2026-05-28T14:07:42.122Z
+updated: 2026-06-09T11:42:52.237Z
 ---
 
 # 💰 Painel Financeiro — SEDE - ARAÇATUBA
@@ -27,4 +27,4 @@ updated: 2026-05-28T14:07:42.122Z
 | - | Nenhuma medição registrada | - | - |
 
 ---
-_Gerado automaticamente pelo ObraSys em 28/05/2026, 14:07:42_
+_Gerado automaticamente pelo ObraSys em 09/06/2026, 11:42:52_

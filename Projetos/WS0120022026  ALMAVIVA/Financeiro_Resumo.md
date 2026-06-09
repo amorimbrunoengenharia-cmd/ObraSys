@@ -1,7 +1,7 @@
 ---
 tags: [financeiro, fpa, ws0120022026-almaviva]
 projeto: "WS01_20.02.2026 - ALMAVIVA"
-updated: 2026-05-28T14:07:42.132Z
+updated: 2026-06-09T11:42:52.275Z
 ---
 
 # 💰 Painel Financeiro — WS01_20.02.2026 - ALMAVIVA
@@ -35,4 +35,4 @@ updated: 2026-05-28T14:07:42.132Z
 | TW TERRAPLANAGEM E CONCRETO LISO | Período: Fev/2026 | R$ 7.000,00 | Aprovado |
 
 ---
-_Gerado automaticamente pelo ObraSys em 28/05/2026, 14:07:42_
+_Gerado automaticamente pelo ObraSys em 09/06/2026, 11:42:52_
